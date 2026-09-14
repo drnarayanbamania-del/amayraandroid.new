@@ -11,6 +11,7 @@ import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
+import android.os.PowerManager
 import com.amayra.maya.MainActivity
 import com.amayra.maya.MayaApplication
 
@@ -20,16 +21,42 @@ import com.amayra.maya.MayaApplication
  */
 class MayaCoreService : Service() {
 
+    /** Partial wakelock: ColorOS Hans-freezer does not freeze wakelock holders,
+     *  so standby (and later wake-word) stays alive with the screen off. */
+    private var wakeLock: PowerManager.WakeLock? = null
+
     override fun onCreate() {
         super.onCreate()
         createChannel()
+        acquireWakelock()
         MayaLog.i("CORE", "MayaCoreService created")
+    }
+
+    private fun acquireWakelock() {
+        if (wakeLock?.isHeld == true) return
+        val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
+        wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "maya:standby").apply {
+            setReferenceCounted(false)
+            acquire(6 * 60 * 60 * 1000L) // 6h safety cap; service restart re-acquires
+        }
+        MayaLog.i("CORE", "Standby wakelock held (Hans-freeze guard)")
+    }
+
+    private fun releaseWakelock() {
+        wakeLock?.takeIf { it.isHeld }?.release()
+        wakeLock = null
+    }
+
+    override fun onDestroy() {
+        releaseWakelock()
+        super.onDestroy()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
             ACTION_SLEEP -> {
                 MayaApplication.get(this).core.sleep()
+                releaseWakelock()
                 stopForeground(STOP_FOREGROUND_REMOVE)
                 stopSelf()
                 return START_NOT_STICKY
