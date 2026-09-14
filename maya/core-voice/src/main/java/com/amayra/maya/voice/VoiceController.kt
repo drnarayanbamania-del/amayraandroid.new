@@ -602,6 +602,7 @@ class VoiceController(
         private const val ECHO_GUARD_WINDOW_MS = 8_000L
 
         /** Idle auto-release: unload the offline engine after this much quiet. */
-        private const val IDLE_RELEASE_MS = 3 * 60_000L
+        // 45s: shrink the Kokoro whale-window fast — long idle = LMK/cleaner bait
+        private const val IDLE_RELEASE_MS = 45_000L
     }
 }
