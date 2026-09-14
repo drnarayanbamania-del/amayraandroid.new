@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Debug-only: adb broadcast test harness (never packaged in release builds). -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application>
+        <receiver
+            android:name=".TestHarnessReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.amayra.maya.SET_PROVIDER" />
+                <action android:name="com.amayra.maya.SEND_CHAT" />
+                <action android:name="com.amayra.maya.GET_STATE" />
+                <action android:name="com.amayra.maya.KEY_STATUS" />
+                <action android:name="com.amayra.maya.SET_COMPAT_KEY" />
+                <action android:name="com.amayra.maya.LIST_MODELS" />
+                <action android:name="com.amayra.maya.SET_MODEL" />
+                <action android:name="com.amayra.maya.SET_PREFS" />
+                <action android:name="com.amayra.maya.TOOL_EXEC" />
+                <action android:name="com.amayra.maya.RESOLVE" />
+                <action android:name="com.amayra.maya.ANSWER_CONFIRM" />
+                <action android:name="com.amayra.maya.DUMP_LOG" />
+            </intent-filter>
+        </receiver>
+    </application>
+
+</manifest>

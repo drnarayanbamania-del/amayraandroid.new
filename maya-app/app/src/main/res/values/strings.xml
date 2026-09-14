@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Maya</string>
+    <string name="license_free_talk">Free mode gives you 10 minutes of talk a day. To unlock every tool, upgrade your license.</string>
+    <string name="mic_permission_needed">Maya needs microphone access to hear you.</string>
+</resources>

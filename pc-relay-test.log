@@ -1,0 +1,37 @@
+[21:54:07] [AMAYRA] Amayra PC assistant starting…
+[21:54:08] [TOOLS] Registered tool: open_application (risk=SAFE)
+[21:54:08] [TOOLS] Registered tool: close_application (risk=DEFAULT)
+[21:54:08] [TOOLS] Registered tool: list_running_apps (risk=SAFE)
+[21:54:08] [TOOLS] Registered tool: switch_window (risk=SAFE)
+[21:54:08] [TOOLS] Registered tool: list_windows (risk=SAFE)
+[21:54:08] [TOOLS] Registered tool: get_active_window (risk=SAFE)
+[21:54:08] [TOOLS] Registered tool: move_window (risk=DEFAULT)
+[21:54:08] [TOOLS] Registered tool: resize_window (risk=DEFAULT)
+[21:54:08] [TOOLS] Registered tool: set_window_state (risk=DEFAULT)
+[21:54:08] [TOOLS] Registered tool: close_window (risk=DEFAULT)
+[21:54:08] [TOOLS] Registered tool: execute_command (risk=CONFIRM)
+[21:54:08] [TOOLS] Registered tool: open_url (risk=SAFE)
+[21:54:08] [TOOLS] Registered tool: clipboard_set (risk=SAFE)
+[21:54:08] [TOOLS] Registered tool: mouse_move (risk=SAFE)
+[21:54:08] [TOOLS] Registered tool: mouse_click (risk=DEFAULT)
+[21:54:08] [TOOLS] Registered tool: mouse_double_click (risk=DEFAULT)
+[21:54:08] [TOOLS] Registered tool: mouse_right_click (risk=DEFAULT)
+[21:54:08] [TOOLS] Registered tool: scroll (risk=SAFE)
+[21:54:08] [TOOLS] Registered tool: keyboard_type (risk=DEFAULT)
+[21:54:08] [TOOLS] Registered tool: keyboard_press (risk=DEFAULT)
+[21:54:08] [TOOLS] Registered tool: keyboard_hotkey (risk=DEFAULT)
+[21:54:08] [TOOLS] Registered tool: read_screen (risk=SAFE)
+[21:54:08] [TOOLS] Registered tool: wait (risk=SAFE)
+[21:54:08] [TOOLS] Registered tool: remember (risk=SAFE)
+[21:54:08] [TOOLS] Registered tool: recall_memory (risk=SAFE)
+[21:54:08] [TOOLS] Registered tool: forget_memory (risk=CONFIRM)
+[21:54:08] [RELAY] PC relay listening on :18789
+???????????????????????????????????????????????
+?  Amayra PC assistant — text console (v0.2)  ?
+?  Type commands; /exit to quit, /state for   ?
+?  the state machine, /memory to recall,      ?
+?  /voice to toggle speech mode, /mute to     ?
+?  silence TTS.                               ?
+???????????????????????????????????????????????
+
+You ? [21:54:08] [AMAYRA] Goodbye.

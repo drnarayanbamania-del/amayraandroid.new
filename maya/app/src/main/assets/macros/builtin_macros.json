@@ -1,0 +1,142 @@
+{
+  "_comment": [
+    "Macros that ship WITH the app, so they survive a reinstall and never have to",
+    "be re-trained by voice. Every step below was derived by driving the real apps",
+    "over ADB on a 1264x2780 device and reading the accessibility tree - the labels",
+    "are the exact text/content-description each control publishes.",
+    "",
+    "RULES if you edit this file:",
+    "  - Prefer tap_text (label lookup) over tap_coordinates. Control positions move",
+    "    with keyboard state; labels do not.",
+    "  - For anything whose duration varies (image/video generation) use",
+    "    wait_for_screen_text, never a fixed wait.",
+    "  - A step that is only sometimes applicable (resetting an app that may already",
+    "    be clean) needs \"_optional\": true, or a normal run ends in the semantic",
+    "    fallback and Maya improvises her way into unrelated apps.",
+    "  - Bump \"version\" to push edits onto installs that already seeded."
+  ],
+  "version": 3,
+  "macros": [
+    {
+      "name": "chatgpt image",
+      "intent": "ChatGPT app me image generate karo aur gallery me save karo",
+      "params": ["image prompt"],
+      "steps": [
+        { "tool": "open_app_by_name", "args": { "name": "ChatGPT" } },
+        { "tool": "wait", "args": { "seconds": 4 } },
+        {
+          "_why": "ChatGPT reopens on whatever screen it was left on. Without this reset the chat still holds older replies, EVERY message row has its own 'Share', and tap_text hits the FIRST one - the old text answer, whose share sheet has no 'Download'. 'New chat' only exists once a conversation is open, so it is optional: on an already-clean screen the step is skipped, not failed.",
+          "tool": "tap_text",
+          "args": { "text": "New chat", "_optional": true }
+        },
+        { "tool": "wait", "args": { "seconds": 5 } },
+        { "tool": "type_text", "args": { "text": "Create an image: {image_prompt}" } },
+        { "tool": "tap_text", "args": { "text": "Send Message" } },
+        { "tool": "wait", "args": { "seconds": 6 } },
+        {
+          "_why": "Generation takes 20-90s depending on load, so watch the progress label instead of guessing a duration.",
+          "tool": "wait_for_screen_text",
+          "args": { "text": "Creating image", "mode": "disappear", "timeout_seconds": 300 }
+        },
+        { "tool": "wait", "args": { "seconds": 3 } },
+        { "tool": "tap_text", "args": { "text": "Share" } },
+        { "tool": "wait", "args": { "seconds": 2 } },
+        { "tool": "tap_text", "args": { "text": "Download" } },
+        { "tool": "wait", "args": { "seconds": 3 } },
+        { "tool": "go_back", "args": {} }
+      ]
+    },
+    {
+      "name": "gemini image",
+      "intent": "Gemini app me Images tool se image banao aur gallery me save karo",
+      "params": ["image prompt"],
+      "steps": [
+        { "tool": "open_app_by_name", "args": { "name": "Gemini" } },
+        { "tool": "wait", "args": { "seconds": 4 } },
+        { "tool": "tap_text", "args": { "text": "New chat", "_optional": true } },
+        { "tool": "wait", "args": { "seconds": 3 } },
+        { "tool": "tap_text", "args": { "text": "Add attachments" } },
+        { "tool": "wait", "args": { "seconds": 2 } },
+        { "tool": "tap_text", "args": { "text": "Images" } },
+        { "tool": "wait", "args": { "seconds": 3 } },
+        { "tool": "type_text", "args": { "text": "{image_prompt}" } },
+        { "tool": "tap_text", "args": { "text": "Send" } },
+        {
+          "tool": "wait_for_screen_text",
+          "args": { "text": "Generated image", "mode": "appear", "timeout_seconds": 300 }
+        },
+        { "tool": "wait", "args": { "seconds": 2 } },
+        {
+          "_why": "Opens the lightbox, whose Save button is unambiguous - unlike the in-chat row.",
+          "tool": "tap_text",
+          "args": { "text": "Generated image 1" }
+        },
+        { "tool": "wait", "args": { "seconds": 3 } },
+        { "tool": "tap_text", "args": { "text": "Save" } },
+        { "tool": "wait", "args": { "seconds": 3 } },
+        { "tool": "go_back", "args": {} }
+      ]
+    },
+    {
+      "name": "gemini video",
+      "intent": "Gemini app me Videos tool se video banao aur save karo",
+      "params": ["video prompt"],
+      "steps": [
+        { "tool": "open_app_by_name", "args": { "name": "Gemini" } },
+        { "tool": "wait", "args": { "seconds": 4 } },
+        { "tool": "tap_text", "args": { "text": "New chat", "_optional": true } },
+        { "tool": "wait", "args": { "seconds": 3 } },
+        { "tool": "tap_text", "args": { "text": "Add attachments" } },
+        { "tool": "wait", "args": { "seconds": 2 } },
+        { "tool": "tap_text", "args": { "text": "Videos" } },
+        { "tool": "wait", "args": { "seconds": 3 } },
+        { "tool": "type_text", "args": { "text": "{video_prompt}" } },
+        { "tool": "tap_text", "args": { "text": "Send" } },
+        {
+          "_why": "Veo/Omni takes anywhere from ~1 to ~8 minutes for the SAME prompt. This is exactly why wait_for_screen_text exists - a fixed wait either gives up early or burns minutes on every run.",
+          "tool": "wait_for_screen_text",
+          "args": { "text": "Your video is ready", "mode": "appear", "timeout_seconds": 600 }
+        },
+        { "tool": "wait", "args": { "seconds": 2 } },
+        {
+          "_why": "Two controls carry the description 'More options' (the message row and the top bar). The message-row one comes first in the node tree, which is what findBestByLabel returns.",
+          "tool": "tap_text",
+          "args": { "text": "More options" }
+        },
+        { "tool": "wait", "args": { "seconds": 2 } },
+        { "tool": "tap_text", "args": { "text": "Save video" } },
+        { "tool": "wait", "args": { "seconds": 4 } }
+      ]
+    },
+    {
+      "name": "chatgpt se poochho",
+      "intent": "ChatGPT app me sawaal poochho aur jawab padhke sunao",
+      "params": ["sawaal"],
+      "steps": [
+        { "tool": "open_app_by_name", "args": { "name": "ChatGPT" } },
+        { "tool": "wait", "args": { "seconds": 4 } },
+        { "tool": "tap_text", "args": { "text": "New chat", "_optional": true } },
+        { "tool": "wait", "args": { "seconds": 5 } },
+        { "tool": "type_text", "args": { "text": "{sawaal}" } },
+        { "tool": "tap_text", "args": { "text": "Send Message" } },
+        { "tool": "wait", "args": { "seconds": 15 } },
+        { "tool": "read_screen_text", "args": {} }
+      ]
+    },
+    {
+      "name": "gemini se poochho",
+      "intent": "Gemini app me sawaal poochho aur jawab padhke sunao",
+      "params": ["sawaal"],
+      "steps": [
+        { "tool": "open_app_by_name", "args": { "name": "Gemini" } },
+        { "tool": "wait", "args": { "seconds": 4 } },
+        { "tool": "tap_text", "args": { "text": "New chat", "_optional": true } },
+        { "tool": "wait", "args": { "seconds": 3 } },
+        { "tool": "type_text", "args": { "text": "{sawaal}" } },
+        { "tool": "tap_text", "args": { "text": "Send" } },
+        { "tool": "wait", "args": { "seconds": 15 } },
+        { "tool": "read_screen_text", "args": {} }
+      ]
+    }
+  ]
+}

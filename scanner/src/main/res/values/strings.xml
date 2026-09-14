@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">AI TEXT SCANNER APP</string>
+    <string name="home_title">AI TEXT SCANNER APP</string>
+    <string name="home_heading">Convert images into text</string>
+    <string name="home_subtitle">Scan, extract and translate text instantly</string>
+    <string name="camera_permission_required">Camera permission required for scanning</string>
+    <string name="ocr_failed">Unable to recognize text. Try a clearer image.</string>
+    <string name="pdf_failed">Unable to process this file.</string>
+    <string name="processing_handwriting">Converting handwriting into text…</string>
+    <string name="processing_ocr">Extracting text…</string>
+    <string name="translating">Translating…</string>
+    <string name="downloading_model">Downloading language model…</string>
+</resources>

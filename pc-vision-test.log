@@ -1,0 +1,45 @@
+[21:29:44] [AMAYRA] Amayra PC assistant starting…
+[21:29:45] [TOOLS] Registered tool: open_application (risk=SAFE)
+[21:29:45] [TOOLS] Registered tool: close_application (risk=DEFAULT)
+[21:29:45] [TOOLS] Registered tool: list_running_apps (risk=SAFE)
+[21:29:45] [TOOLS] Registered tool: switch_window (risk=SAFE)
+[21:29:45] [TOOLS] Registered tool: list_windows (risk=SAFE)
+[21:29:45] [TOOLS] Registered tool: execute_command (risk=CONFIRM)
+[21:29:45] [TOOLS] Registered tool: open_url (risk=SAFE)
+[21:29:45] [TOOLS] Registered tool: clipboard_set (risk=SAFE)
+[21:29:45] [TOOLS] Registered tool: mouse_move (risk=SAFE)
+[21:29:45] [TOOLS] Registered tool: mouse_click (risk=DEFAULT)
+[21:29:45] [TOOLS] Registered tool: mouse_double_click (risk=DEFAULT)
+[21:29:45] [TOOLS] Registered tool: mouse_right_click (risk=DEFAULT)
+[21:29:45] [TOOLS] Registered tool: scroll (risk=SAFE)
+[21:29:45] [TOOLS] Registered tool: keyboard_type (risk=DEFAULT)
+[21:29:45] [TOOLS] Registered tool: keyboard_press (risk=DEFAULT)
+[21:29:45] [TOOLS] Registered tool: keyboard_hotkey (risk=DEFAULT)
+[21:29:45] [TOOLS] Registered tool: read_screen (risk=SAFE)
+[21:29:45] [TOOLS] Registered tool: wait (risk=SAFE)
+[21:29:45] [TOOLS] Registered tool: remember (risk=SAFE)
+[21:29:45] [TOOLS] Registered tool: recall_memory (risk=SAFE)
+[21:29:45] [TOOLS] Registered tool: forget_memory (risk=CONFIRM)
+[21:29:45] [RELAY] PC relay listening on :18789
+???????????????????????????????????????????????
+?  Amayra PC assistant — text console (v0.2)  ?
+?  Type commands; /exit to quit, /state for   ?
+?  the state machine, /memory to recall,      ?
+?  /voice to toggle speech mode, /mute to     ?
+?  silence TTS.                               ?
+???????????????????????????????????????????????
+
+You ? [21:29:50] [BRAIN] read_screen -> true
+
+Amayra ? _You have **File Explorer** open to your **Downloads** folder. I can also see a browser in the background with tabs for "Build with AI" and "Amayra - Personal Assistant," as well as an assistant interface at the bottom of the screen.
+
+In your Downloads, I can read several files, including:
+*   **The_engineering_goal_is_to_create_a_hig...** (zip file)
+*   **python-manager-26.3** (MSIX file)
+*   **Telegram Desktop** folder
+*   **ChatGPT Image** from today
+*   Several **project-bolt-sb1** zip files from yesterday
+
+The assistant text at the bottom says, "Done! Amayra is now fully bilingual," and mentions a new "Conversation language setting."
+
+You ? [21:31:36] [AMAYRA] Goodbye.

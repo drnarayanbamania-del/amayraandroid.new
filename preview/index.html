@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Maya — Android AI Assistant · Project Dashboard</title>
+<style>
+  :root {
+    --bg: #0B0E14; --surface: #121722; --surface2: #1A2130;
+    --primary: #7C4DFF; --accent: #00E5C7; --warn: #FFB454; --err: #FF5470;
+    --text: #E8EAF2; --dim: #8A93A8; --border: #232B3E;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif;
+         min-height: 100vh; padding: 32px 24px; }
+  .wrap { max-width: 1080px; margin: 0 auto; }
+  header { display: flex; align-items: center; gap: 18px; margin-bottom: 28px; }
+  .logo { width: 64px; height: 64px; border-radius: 20px; flex-shrink: 0;
+           background: radial-gradient(circle at 50% 45%, #B39DDB 0%, #7C4DFF 45%, transparent 72%),
+                       radial-gradient(circle at 50% 50%, rgba(124,77,255,.35) 0%, transparent 60%);
+           border: 1px solid var(--border); animation: breath 3.2s ease-in-out infinite; }
+  .logo::before, .logo::after { content: ''; position: absolute; width: 7px; height: 9px;
+           border-radius: 50%; background: #E8EAF2; top: 42%; }
+  .logo { position: relative; }
+  .logo::before { left: 34%; } .logo::after { right: 34%; }
+  @keyframes breath { 0%,100% { transform: scale(1); } 50% { transform: scale(1.045); } }
+  h1 { font-size: 30px; font-weight: 700; letter-spacing: -.5px; }
+  h1 span { color: var(--primary); }
+  .sub { color: var(--dim); font-size: 14px; margin-top: 3px; }
+  .badge { display: inline-flex; align-items: center; gap: 7px; margin-left: auto;
+            background: rgba(0,229,199,.1); border: 1px solid rgba(0,229,199,.35);
+            color: var(--accent); padding: 8px 16px; border-radius: 999px;
+            font-size: 13px; font-weight: 600; white-space: nowrap; }
+  .badge::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: currentColor;
+                    box-shadow: 0 0 10px currentColor; animation: pulse 1.6s infinite; }
+  .badge-bad { background: rgba(255,84,112,.1); border-color: rgba(255,84,112,.4); color: var(--err); }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin-bottom: 22px; }
+  .stat { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 18px; }
+  .stat .k { color: var(--dim); font-size: 12px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+  .stat .v { font-size: 21px; font-weight: 650; }
+  .stat .d { color: var(--dim); font-size: 12.5px; margin-top: 6px; line-height: 1.5; }
+  section { background: var(--surface); border: 1px solid var(--border); border-radius: 20px;
+             padding: 24px; margin-bottom: 20px; }
+  section h2 { font-size: 17px; margin-bottom: 16px; display: flex; align-items: center; gap: 10px; }
+  section h2::before { content: ''; width: 4px; height: 18px; border-radius: 2px; background: var(--primary); }
+  .flow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+  .node { background: var(--surface2); border: 1px solid var(--border); border-radius: 12px;
+           padding: 10px 14px; font-size: 13px; font-weight: 600; }
+  .node.hot { border-color: rgba(124,77,255,.5); color: #C9B5FF; }
+  .arrow { color: var(--dim); font-size: 15px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  th { text-align: left; color: var(--dim); font-weight: 600; padding: 8px 10px;
+        border-bottom: 1px solid var(--border); font-size: 12px; text-transform: uppercase; letter-spacing: .8px; }
+  td { padding: 9px 10px; border-bottom: 1px solid rgba(35,43,62,.55); vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  .tag { display: inline-block; padding: 2.5px 10px; border-radius: 999px; font-size: 11.5px; font-weight: 650; }
+  .ok   { background: rgba(76,224,166,.12); color: #4CE0A6; }
+  .equiv{ background: rgba(255,180,84,.12); color: var(--warn); }
+  .todo { background: rgba(255,84,112,.1); color: var(--err); }
+  .inf  { background: rgba(124,77,255,.14); color: #C9B5FF; }
+  .mono { font-family: 'Cascadia Code', Consolas, monospace; font-size: 12px; color: var(--accent); }
+  .legend { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; color: var(--dim); font-size: 12px; }
+  .files { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; }
+  .file { background: var(--surface2); border: 1px solid var(--border); border-radius: 12px;
+           padding: 12px 14px; font-size: 13px; }
+  .file b { display: block; margin-bottom: 3px; font-size: 13px; }
+  .file span { color: var(--dim); font-size: 12px; }
+  footer { text-align: center; color: var(--dim); font-size: 12px; padding: 18px 0 6px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo"></div>
+    <div>
+      <h1>Maya <span>·</span> Android AI Assistant</h1>
+      <div class="sub">Clean-room behavioral replica · upgraded to <b>maya-v4.15.1 parity</b> · Kotlin + Jetpack Compose · namespace <span class="mono">com.amayra.maya</span></div>
+    </div>
+    <div class="badge">BUILD SUCCESSFUL · 75/75 TESTS</div>
+  </header>
+
+  <div class="grid">
+    <div class="stat"><div class="k">Debug APK</div><div class="v">383 MB</div><div class="d">C:\maya-build\maya\app\outputs\apk\debug\app-debug.apk<br>built 4 min ago · ships Guardian + wake-word models</div></div>
+    <div class="stat"><div class="k">Toolchain</div><div class="v">AGP 9.3.1</div>
+      <div class="d">Kotlin 2.2.10 · Gradle 9.5.0 · compileSdk 37 · minSdk 24 · TFLite 2.16 · ML Kit · CameraX</div></div>
+    <div class="stat"><div class="k">AI Providers</div><div class="v">Gemini + OpenAI-compat</div>
+      <div class="d">Groq · OpenRouter · OpenAI · local (LM Studio / Ollama) · Gemini TTS voices</div></div>
+    <div class="stat"><div class="k">Source files</div><div class="v">71 Kotlin files</div>
+      <div class="d">28 packages incl. guardian · wakeword · tts · persona · accessibility · screen</div></div>
+  </div>
+
+  <section>
+    <h2>Turn loop — how Maya thinks</h2>
+    <div class="flow">
+      <div class="node">User input</div><div class="arrow">→</div>
+      <div class="node">Memory context</div><div class="arrow">→</div>
+      <div class="node hot">AI stream (SSE)</div><div class="arrow">→</div>
+      <div class="node hot">ToolRegistry</div><div class="arrow">→</div>
+      <div class="node">Risk gate + confirm</div><div class="arrow">→</div>
+      <div class="node">Execute + audit log</div><div class="arrow">→</div>
+      <div class="node">Response</div><div class="arrow">→</div>
+      <div class="node">Gemini TTS · Avatar · DB</div>
+    </div>
+    <div class="d" style="color:var(--dim);font-size:13px;margin-top:14px">
+      State machine: <b style="color:var(--text)">IDLE → LISTENING → PROCESSING → TOOL_EXECUTION → RESPONDING → SPEAKING → IDLE</b> (plus ERROR / SLEEPING).
+      The avatar derives its expression live from the same StateBus.
+    </div>
+  </section>
+
+  <section><h2>v4.15.1 parity — 13 areas vs the real reference build</h2>
+<table>
+<tr><th>Area</th><th>Reference</th><th>This replica</th><th>Status</th></tr>
+<tr><td>Voice Guardian</td><td>ECAPA 6s + Silero VAD + 200-stranger AS-Norm cohort; 1.43% EER; graceful per-asset degradation</td><td><span class="mono">voice/guardian/</span>: SpeakerEmbedder (raw-waveform + fbank autodetect), SpeechGate (Silero v4 LSTM state + DSP fallback), ScoreNormalizer (cohort.bin parser, top-K AS-Norm, calibrated logistic), VoiceGuardian (voiced-window assembly, enrollment, verification). Models extracted into assets</td><td><span class="tag ok">Implemented</span></td></tr>
+<tr><td>Wake word</td><td>hey_maya/wake_up_maya TFLite chain (mel → embedding → keyword) on always-on mic FGS</td><td><span class="mono">voice/wakeword/</span>: WakeWordEngine (3-model chain, shape introspection, streak smoothing) + WakeWordService (16 kHz loop, mic FGS, wakelock, Guardian piggyback)</td><td><span class="tag ok">Implemented</span></td></tr>
+<tr><td>Personas</td><td>Maya/Friday/Venom with own Live2D model + Gemini voice pack + Hinglish prompts; <span class="mono">switch_persona</span> CONFIRM-gated; girlfriend mode = settings, not persona</td><td><span class="mono">persona/</span>: Persona definitions (voice packs, prompts, hues), PersonaManager (DataStore persistence), SwitchPersonaTool; prompt overlay in cognitive core</td><td><span class="tag ok">Implemented</span></td></tr>
+<tr><td>Accessibility macros</td><td>tap_text/type_text/tap_coords/wait_for_screen_text/go_back/lock_screen/screenshot/open_app_by_name; builtin_macros.json with _optional/_why; SIM-picker guidance</td><td><span class="mono">accessibility/</span>: MayaAccessibilityService (tree dump, gestures, API-30 screenshot, GLOBAL_ACTION_LOCK_SCREEN), MacroEngine (full step set, param substitution, optional-step semantics, cancel flag), MacroTools (play_macro/list_macros/lock_screen/take_screenshot/screen_info). builtin_macros.json shipped verbatim</td><td><span class="tag ok">Implemented</span></td></tr>
+<tr><td>Calls</td><td>INCOMING_CALL/ANSWER_CALL/REJECT_CALL contracts; caller announce</td><td><span class="mono">integration/CallManager.kt</span>: TelecomManager answer/reject with honest SecurityException reporting; answer_call/reject_call/send_sms tools</td><td><span class="tag ok">Implemented</span></td></tr>
+<tr><td>Screen share</td><td>START_SCREEN_SHARE</td><td>Full pipeline: consent dialog → ScreenCaptureService (mediaProjection FGS, VirtualDisplay + ImageReader latest-frame holder) → see_screen tool pulls the newest frame as JPEG and gets a vision-model description via AiClient.visionOnce; screen_share starts/stops capture and reports honestly when consent is denied</td><td><span class="tag ok">Implemented</span></td></tr>
+<tr><td>Barcode</td><td>ML Kit bundled models + Scanner</td><td>CameraX + ML Kit maven artifact; scanner screen + scan_barcode tool via StateBus</td><td><span class="tag ok">Implemented</span></td></tr>
+<tr><td>PC relay</td><td>SEND_COMMAND/SEND_FILE/TERMUX_RESULT + OpenClaw gateway :18789</td><td><span class="mono">integration/PcRelay.kt</span>: JSON-lines TCP bridge on 18789; PING + SEND_COMMAND routed through TermuxManager with honest failures</td><td><span class="tag ok">Implemented</span></td></tr>
+<tr><td>SOS</td><td>not observed in 4.15.1</td><td>opt-in siren + pre-filled dialer (retained from 3.0 parity)</td><td><span class="tag ok">Implemented</span></td></tr>
+<tr><td>Live2D Cubism</td><td>native lib + 3 persona models (Haru/Mao/Natori)</td><td>pluggable Live2D renderer contract + loader; models not bundled (proprietary license — see LIVE2D_SETUP.md)</td><td><span class="tag equiv">Equivalent</span></td></tr>
+<tr><td>Gemini-TTS voices</td><td>39 preview .ogg files (Aoede…Zubenelgenubi)</td><td>Gemini TTS wired: per-persona voice + style hint via the interactions API with a generateContent fallback; 24 kHz PCM AudioTrack playback; per-persona voice picker + Test button in Settings; falls back to Android TTS on failure</td><td><span class="tag ok">Implemented</span></td></tr>
+<tr><td>Permissions center</td><td>Permissions screen: one card per capability (assistant, mic, camera, calls, location, contacts, SMS, gallery, answer/manage calls, Bluetooth) + special accesses (notifications, notification access, accessibility, battery, overlay, screen-capture test), live Granted/Grant state</td><td><span class="mono">ui/permissions/PermissionsScreen.kt</span>: runtime groups via RequestMultiplePermissions; special-access deep links to exact system panels with app-page fallback; state re-checks on resume; manifest gains location/media/BT/ASSISTANT</td><td><span class="tag ok">Implemented</span></td></tr>
+<tr><td>First-run setup</td><td>(reference opens straight to chat)</td><td><span class="mono">ui/setup/SetupGateScreen.kt</span>: welcome → encrypted Gemini key entry (skippable) → mic permission primer; <span class="mono">setupComplete</span> gate in SettingsRepository; proactive greeting suppressed by MayaCognitiveCore until setup done; setup route forces on fresh installs, bottom nav hidden</td><td><span class="tag ok">Implemented</span></td></tr>
+</table></section><section><h2>MAYA-3.0 baseline (retained)</h2>
+<div class="d" style="color:var(--dim);font-size:12.5px;margin-bottom:10px">Rows marked <span class="tag inf">↑ v4.15.1</span> are superseded by the newer section above — their status badge shows the current v4.15.1 result.</div>
+<table>
+<tr><th>Area</th><th>Reference</th><th>This replica</th><th>Status</th></tr>
+<tr><td>Package/namespace</td><td><span class="mono">com.sakeera.ai</span> (3.0) / <span class="mono">com.getmaya.android</span> contracts (4.15.1)</td><td><span class="mono">com.amayra.maya</span></td><td><span class="tag ok">Implemented</span></td></tr>
+<tr><td>UI stack</td><td>Single-activity Compose, Chat + Settings</td><td>Single-activity Compose, Chat/Tools/Settings/Diagnostics, bottom nav</td><td><span class="tag ok">Implemented</span></td></tr>
+<tr><td>Streaming chat</td><td>MayaaAiClient chat+stream</td><td>AiClient → Gemini/OpenAI-compat SSE streaming</td><td><span class="tag ok">Implemented</span></td></tr>
+<tr><td>Providers</td><td>(server-side in reference)</td><td>Gemini + OpenAI-compatible (Groq/OpenRouter/OpenAI/local), user-configurable</td><td><span class="tag ok">Implemented</span></td></tr>
+<tr><td>Multimodal image input</td><td>SEND_IMAGE action</td><td>Photo picker → downscale → inline_data / image_url parts</td><td><span class="tag ok">Implemented</span></td></tr>
+<tr><td>Tool system</td><td>ToolRegistry/ToolExecutor/RiskLevel</td><td>ToolRegistry + RiskLevel + confirmation dialog + audit log</td><td><span class="tag ok">Implemented</span></td></tr>
+<tr><td>Torch/Battery/Time/Storage/OpenApp/OpenUrl/WebSearch/Dialer tools</td><td>observed</td><td>implemented (same set + extras)</td><td><span class="tag ok">Implemented</span></td></tr>
+<tr><td>Memory store</td><td>MemoryStore + task status</td><td>MemoryDao (facts/preferences/tasks, pin/importance/done) + chat-context injection</td><td><span class="tag ok">Implemented</span></td></tr>
+<tr><td>Clear memory</td><td>ClearMemory tool</td><td>clear_memory tool + Tools screen button</td><td><span class="tag ok">Implemented</span></td></tr>
+<tr><td>Proactive/initiative engines</td><td>GoalManager/InitiativeEngine/ReflectionEngine/AttentionEngine</td><td>proactive greeting + event-driven hooks (simplified)</td><td><span class="tag equiv">Equivalent</span></td></tr>
+<tr><td>Offline reasoning</td><td>LocalReasoner</td><td>honest offline error states; no fabricated replies</td><td><span class="tag equiv">Equivalent</span></td></tr>
+<tr><td>Voice STT/TTS</td><td>VoiceController + SpeechArbiter</td><td>VoiceController with speak/listen arbiter</td><td><span class="tag ok">Implemented</span></td></tr>
+<tr><td>Assistant state machine</td><td>StateManager/Focus/InternalState</td><td>StateBus + AssistantState/Emotion</td><td><span class="tag ok">Implemented</span></td></tr>
+<tr><td>Foreground service</td><td>MayaCoreService</td><td>MayaCoreService + channels</td><td><span class="tag ok">Implemented</span></td></tr>
+<tr><td>Notification listener</td><td>MayaNotificationListener</td><td>MayaNotificationListener → EventBus → auto-reply</td><td><span class="tag ok">Implemented</span></td></tr>
+<tr><td>Live2D Cubism avatar</td><td>native lib in v4.15.1 (🧩 for 3.0 build)</td><td>MayaAvatarController contract + canvas renderer; Live2D pluggable behind same interface</td><td><span class="tag equiv">Equivalent</span> <span class="tag inf">↑ v4.15.1</span></td></tr>
+<tr><td>WhatsApp send</td><td>SEND actions</td><td>share-intent send; user always presses Send</td><td><span class="tag equiv">Equivalent</span></td></tr>
+<tr><td>WhatsApp auto-reply</td><td>auto reply + logs</td><td>allowlist/quiet-hours/daily-cap/logged replies</td><td><span class="tag ok">Implemented</span></td></tr>
+<tr><td>WhatsApp delete-for-everyone</td><td>delete tool</td><td>not reliably possible without accessibility; honest failure reported</td><td><span class="tag equiv">Equivalent</span></td></tr>
+<tr><td>Termux</td><td>deep integration (v4.15.1 🧩)</td><td>RUN_COMMAND intent + result-file protocol + permission diagnostics</td><td><span class="tag equiv">Equivalent</span></td></tr>
+<tr><td>OpenClaw</td><td>gateway :18789 (🧩)</td><td>gateway probe + guided onboarding via Termux</td><td><span class="tag equiv">Equivalent</span></td></tr>
+<tr><td>Screen share</td><td>START_SCREEN_SHARE (🧩)</td><td>not yet — needs MediaProjection UI flow</td><td><span class="tag ok">Implemented</span> <span class="tag inf">↑ v4.15.1</span></td></tr>
+<tr><td>Calls</td><td>INCOMING/ANSWER/REJECT (🧩)</td><td>dialer pre-fill only; no silent call control</td><td><span class="tag ok">Implemented</span> <span class="tag inf">↑ v4.15.1</span></td></tr>
+<tr><td>SOS</td><td>(not observed) 🧩</td><td>opt-in siren + pre-filled emergency dialer + settings</td><td><span class="tag ok">Implemented</span> <span class="tag inf">↑ v4.15.1</span></td></tr>
+<tr><td>Macros</td><td>PLAY_MACRO (🧩)</td><td>not yet</td><td><span class="tag ok">Implemented</span> <span class="tag inf">↑ v4.15.1</span></td></tr>
+<tr><td>Backup/export</td><td>memory/backup functionality 🧩</td><td>not yet</td><td><span class="tag todo">Not yet</span></td></tr>
+<tr><td>Standby/wake</td><td>BOOT_STANDBY/ENSURE_STANDBY/WAKE_PREF 🧩</td><td>Sleeping state + boot-started foreground service</td><td><span class="tag equiv">Equivalent</span></td></tr>
+<tr><td>Honest errors</td><td>error states</td><td>AiError taxonomy + human messages; never fake success</td><td><span class="tag ok">Implemented</span></td></tr>
+<tr><td>Secrets</td><td>—</td><td>Keystore EncryptedSharedPreferences; redacting logger</td><td><span class="tag ok">Implemented</span></td></tr>
+</table></section>
+  <div><div class="legend"><span class="tag ok">Implemented</span><span class="tag equiv">Closest legal equivalent</span><span class="tag inf">Inferred from spec</span><span class="tag todo">Not yet</span></div></div>
+
+  <section>
+    <h2>Latest engineering changes</h2>
+    <table>
+      <tr><th>Date</th><th>Area</th><th>Change</th></tr>
+      <tr><td class="mono">2026-09-14</td><td style="color:var(--dim);white-space:nowrap">voice</td><td>Voice upgrade: Piper priyamvada replaced with Kokoro-82M int8 (sherpa-onnx) — a generation-better natural female Hindi voice (hf_ speaker), fully offline, zero quota. 178 MB bundle ships in the APK (model.int8.onnx + voices.bin + tokens + espeak-ng-data with Hindi dict); engine is speaker-id-selectable via pref (default hf=47) so other voices can be tried without a rebuild. Old 'piper' engine pref migrates transparently to the new engine slot. Installed (401 MB APK); final sound check is the user's first spoken turn — Android-TTS fallback chain covers any init failure.</td></tr>
+      <tr><td class="mono">2026-09-14</td><td style="color:var(--dim);white-space:nowrap">ui</td><td>Settings + Diagnostics brought onto the new design language: Settings section cards now use the rounded-16 + hairline-stroke treatment matching chat bubbles; Diagnostics status rows replaced emoji indicators with colored status dots (green ok / red problem / dim info) in the same card style. Built and installed; on-device Settings render was interrupted mid-verification (phone went into active use — an errant automation tap was immediately cancelled via BACK), so a final visual pass on these two screens is pending user's quiet-phone confirmation.</td></tr>
+      <tr><td class="mono">2026-09-14</td><td style="color:var(--dim);white-space:nowrap">ui</td><td>Professional UI polish pass: chat-style asymmetric message bubbles (user tail-right, Maya tail-left) with hairline borders, live status pill under the avatar (colored dot + state: Listening/Thinking/Speaking), pill input bar with borderless field and circular violet send button, tinted mic/stop/attach actions, cleaner tool chips, and a refined dark palette (softer surfaces, tuned typography/line-heights). Verified rendering on-device via UI dump; screenshot on Desktop (maya_new_ui.png).</td></tr>
+      <tr><td class="mono">2026-09-14</td><td style="color:var(--dim);white-space:nowrap">voice</td><td>Hands-free hardening from live test: (1) FATAL crash fixed — hands-free relisten created SpeechRecognizer from the IO thread ('should be used only from the application's main thread'); every recognizer call now hops to the main looper. (2) Echo guard added — Maya no longer transcribes her OWN just-spoken reply as a user turn (self-talk loop); matches against the last spoken tail within an 8s window are dropped with a log line. (3) Piper end-to-end verified live: 'Piper engine ready (22050 Hz)' → 'speaking done (offline, quota-free)', model materializes correctly (63 MB onnx + tokens + espeak-ng-data).</td></tr>
+      <tr><td class="mono">2026-09-14</td><td style="color:var(--dim);white-space:nowrap">voice</td><td>Offline natural Hindi voice (Piper): priyamvada (young female, hi_IN) neural TTS now runs fully on-device via sherpa-onnx — 63 MB model ships in the APK and feeds the existing PCM playback path. New third engine chip in Settings: Maya (Gemini) / Android (no quota) / Piper (offline, natural, no quota). Root-caused on-device: the asset copier nested file leaves under same-named directories (…onnx/hi_IN-priyamvada-medium.onnx), so init failed with 'model does not exist' and fell back to Android TTS; copier rewritten (list-emptiness leaf detection, guaranteed parent dirs) and 75/75 tests green. First speak pending a manual unlock test — the OEM freezer + pattern lock silently drop adb broadcasts (dispatch SKIPPED), which also explains the silent harness windows.</td></tr>
+      <tr><td class="mono">2026-09-14</td><td style="color:var(--dim);white-space:nowrap">voice</td><td>Agent stuck after tool turns — fixed: the OpenAI-compat serializer sent tool messages without tool_call_id and assistant tool-call turns without the tool_calls array. Gemini tolerated it; Groq 400s every follow-up turn after any tool call (observed live: 'for role:tool tool_call_id is missing'). Both fields now serialize per OpenAI protocol — verified on-device: tool turn + follow-up turn + voice reply, no 400. Note: Groq free tier also enforces per-model daily caps (TPM 429s at ~18:41) — recovery is automatic.</td></tr>
+      <tr><td class="mono">2026-09-14</td><td style="color:var(--dim);white-space:nowrap">voice</td><td>Reply-voice picker in Settings (Voice &amp; Avatar): "Maya (Gemini)" vs "Android (no quota)" — forcing the device engine gives unlimited all-day voice with zero Gemini calls. Verified live: two turns spoke via Android TTS (en_GB + auto hi-IN for Devanagari), zero 429s. Also fixed: SpeechRecognizer stopListening is now posted to the main thread (crashed turns when speak() interrupted listening).</td></tr>
+      <tr><td class="mono">2026-09-14</td><td style="color:var(--dim);white-space:nowrap">devex</td><td>Debug harness expanded: TOOL_EXEC (direct tool invocation), RESOLVE (contact resolution), ANSWER_CONFIRM (programmatic confirmation answers), and DUMP_LOG (in-app log-ring + live prefs snapshot) — plus the missing intent-filter registrations that were silently dropping those broadcasts.</td></tr>
+      <tr><td class="mono">2026-09-14</td><td style="color:var(--dim);white-space:nowrap">voice</td><td>Voice-dead bug fix: after a process restart, prefsCache stayed null until the Setup Gate ran, so the turn-end autoSpeak check silently failed and voice.speak() was never called — chat replied fine but Maya never spoke. Cache now warms at process start AND the turn-end speaks from the turn's own flow-read prefs. Verified live: speak() fires; Gemini TTS 429 now degrades to Android TTS fallback as designed (robot voice until Gemini quota resets).</td></tr>
+      <tr><td class="mono">2026-09-14</td><td style="color:var(--dim);white-space:nowrap">agent</td><td>Confirm-flow leak fix (found live by the debug panel): a new tool-confirmation request used to silently orphan the pending one — hanging that tool and the agent turn forever (observed: whatsapp_send_message stuck RUNNING 15+ min). Now a new request supersedes the old (auto-decline) and unanswered dialogs auto-decline after 90s.</td></tr>
+      <tr><td class="mono">2026-09-14</td><td style="color:var(--dim);white-space:nowrap">devex</td><td>Developer debug panel (Diagnostics → 🐞 Debug): live agent state, current tool with args/outcome/duration, turn log, 48-tool registry breakdown, real permission probes, and foreground screen context — all streamed from the real execution paths (AgentDebugBus) with automatic secret redaction. 8 new unit tests.</td></tr>
+      <tr><td class="mono">2026-09-14</td><td style="color:var(--dim);white-space:nowrap">agent</td><td>Screen-control agent tools (blueprint §5–6): click_element, type_text, inspect_screen, scroll_screen, press_back, find_element — real accessibility-node actions with gesture fallbacks, post-action re-inspection, and honest failures. Verified live on-device: cross-app inspect (Settings), open_app→Settings, type_text with submit.</td></tr>
+      <tr><td class="mono">2026-09-14</td><td style="color:var(--dim);white-space:nowrap">ui</td><td>Engine-status dialog (Diagnostics → ⚡ Engine): reference-styled modal with live provider/model specs, real gateway latency (HEAD probe), TLS/HTTP version from the actual handshake, active network transport, Termux capability, and live tool count — every value measured on-device, nothing hardcoded.</td></tr>
+      <tr><td class="mono">2026-09-14</td><td style="color:var(--dim);white-space:nowrap">voice</td><td>Crash fix: wake-word service shows its foreground notification before the TFLite/Guardian load — Android 12+ no longer kills it (observed FGS timeout on CPH2505).</td></tr>
+      <tr><td class="mono">2026-09-14</td><td style="color:var(--dim);white-space:nowrap">voice</td><td>Pipelined TTS: replies are synthesized per sentence and chunk N+1 generates while chunk N plays — first word arrives after ~one sentence, not the whole reply.</td></tr>
+      <tr><td class="mono">2026-09-14</td><td style="color:var(--dim);white-space:nowrap">voice</td><td>STT finalization tuned (700 ms silence windows) + a <span class="mono">reply latency: …ms</span> log so voice tuning is measured, not guessed.</td></tr>
+      <tr><td class="mono">2026-09-14</td><td style="color:var(--dim);white-space:nowrap">ui</td><td>AI errors surface in the chat UI: structured error kinds (quota / auth / network / timeout) drive a prominent banner with Retry and Fix-in-Settings actions; error turns are excluded from provider context.</td></tr>
+      <tr><td class="mono">2026-09-14</td><td style="color:var(--dim);white-space:nowrap">tools</td><td><span class="mono">open_app</span> fixed on Android 11+: manifest <span class="mono">&lt;queries&gt;</span> restores package visibility (YouTube/Gmail previously reported "no installed app matches").</td></tr>
+      <tr><td class="mono">2026-09-14</td><td style="color:var(--dim);white-space:nowrap">devex</td><td>Debug test-harness receiver re-registered (lost in the module restructure) — adb broadcast drive/testing works again.</td></tr>
+    </table>
+  </section>
+
+  <section>
+    <h2>Project map (live source tree)</h2>
+    <div class="files">
+<div class="file"><b>accessibility/</b><span>MayaAccessibilityService · MacroEngine · macro tools · <b style="color:var(--text)">3 kt</b></span></div>
+<div class="file"><b>ai/</b><span>Models · AiClient · GeminiClient · OpenAiCompatClient · <b style="color:var(--text)">6 kt</b></span></div>
+<div class="file"><b>avatar/</b><span>AvatarController · renderers (holographic + Live2D pluggable) · <b style="color:var(--text)">4 kt</b></span></div>
+<div class="file"><b>avatar/anime/</b><span>AnimeAvatarRenderer.kt · <b style="color:var(--text)">1 kt</b></span></div>
+<div class="file"><b>avatar/live2d/</b><span>Live2DController.kt · Live2DModelRepository.kt · Live2DModelSpec.kt · Live2DRenderer.kt · <b style="color:var(--text)">4 kt</b></span></div>
+<div class="file"><b>core/</b><span>MayaCognitiveCore · StateBus · MayaCoreService · MayaLog · <b style="color:var(--text)">5 kt</b></span></div>
+<div class="file"><b>data/</b><span>messages · memories · tool logs · auto-reply log · <b style="color:var(--text)">1 kt</b></span></div>
+<div class="file"><b>events/</b><span>EventBus · MayaNotificationListener · <b style="color:var(--text)">2 kt</b></span></div>
+<div class="file"><b>integration/</b><span>Termux · WhatsApp · OpenClaw · SOS · CallManager · PcRelay · <b style="color:var(--text)">9 kt</b></span></div>
+<div class="file"><b>memory/</b><span>SecureStore (Keystore) · <b style="color:var(--text)">1 kt</b></span></div>
+<div class="file"><b>persona/</b><span>Persona (Maya/Friday/Venom) · PersonaManager · switch tool · <b style="color:var(--text)">2 kt</b></span></div>
+<div class="file"><b>screen/</b><span>ScreenCaptureService · ScreenShareBus · <b style="color:var(--text)">1 kt</b></span></div>
+<div class="file"><b>settings/</b><span>SettingsRepository (DataStore) · <b style="color:var(--text)">1 kt</b></span></div>
+<div class="file"><b>tools/</b><span>ToolRegistry · RiskLevel · device/screen tools · <b style="color:var(--text)">6 kt</b></span></div>
+<div class="file"><b>ui/chat/</b><span>ChatScreen.kt · <b style="color:var(--text)">1 kt</b></span></div>
+<div class="file"><b>ui/diagnostics/</b><span>DiagnosticsScreen.kt · <b style="color:var(--text)">1 kt</b></span></div>
+<div class="file"><b>ui/home/</b><span>MyraHomeScreen.kt · <b style="color:var(--text)">1 kt</b></span></div>
+<div class="file"><b>ui/memories/</b><span>RecollectionsScreen.kt · <b style="color:var(--text)">1 kt</b></span></div>
+<div class="file"><b>ui/permissions/</b><span>PermissionsScreen.kt · <b style="color:var(--text)">1 kt</b></span></div>
+<div class="file"><b>ui/scanner/</b><span>BarcodeScannerScreen.kt · <b style="color:var(--text)">1 kt</b></span></div>
+<div class="file"><b>ui/settings/</b><span>SettingsScreen.kt · VoiceGuardianSection.kt · <b style="color:var(--text)">2 kt</b></span></div>
+<div class="file"><b>ui/setup/</b><span>SetupGateScreen.kt · <b style="color:var(--text)">1 kt</b></span></div>
+<div class="file"><b>ui/theme/</b><span>Theme.kt · <b style="color:var(--text)">1 kt</b></span></div>
+<div class="file"><b>voice/</b><span>VoiceController (STT + TTS arbiter + engine selection) · <b style="color:var(--text)">1 kt</b></span></div>
+<div class="file"><b>voice/guardian/</b><span>SpeakerEmbedder · SpeechGate · ScoreNormalizer · VoiceGuardian · <b style="color:var(--text)">6 kt</b></span></div>
+<div class="file"><b>voice/tts/</b><span>GeminiTtsClient (interactions + generateContent fallback) · <b style="color:var(--text)">1 kt</b></span></div>
+<div class="file"><b>voice/wakeword/</b><span>WakeWordEngine (3-model chain) · WakeWordService (mic FGS) · <b style="color:var(--text)">2 kt</b></span></div>
+<div class="file"><b>&lt;root&gt;/</b><span>AppGraph.kt · ImageUtils.kt · MainActivity.kt · MayaApplication.kt · ToolsScreen.kt · <b style="color:var(--text)">5 kt</b></span></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Bundled assets</h2>
+    <div class="files">
+<div class="file"><b>assets/guardian/</b><span>3 files · 42.7 MB</span></div>
+<div class="file"><b>assets/live2d/</b><span>2 files · 4 KB</span></div>
+<div class="file"><b>assets/macros/</b><span>1 files · 7 KB</span></div>
+<div class="file"><b>assets/wakeword/</b><span>4 files · 3.5 MB</span></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Quick setup</h2>
+    <table>
+      <tr><th>Provider</th><th>Base URL</th><th>Example model</th></tr>
+      <tr><td>Google Gemini</td><td class="mono">(built-in)</td><td class="mono">gemini-2.0-flash</td></tr>
+      <tr><td>Groq</td><td class="mono">https://api.groq.com/openai/v1</td><td class="mono">openai/gpt-oss-120b</td></tr>
+      <tr><td>OpenRouter</td><td class="mono">https://openrouter.ai/api/v1</td><td class="mono">google/gemini-2.0-flash-001</td></tr>
+      <tr><td>OpenAI</td><td class="mono">https://api.openai.com/v1</td><td class="mono">gpt-4o-mini</td></tr>
+      <tr><td>Local</td><td class="mono">http://&lt;pc-ip&gt;:1234/v1</td><td class="mono">(any loaded model)</td></tr>
+    </table>
+    <div class="d" style="color:var(--dim);font-size:13px;margin-top:14px">
+      Keys are stored in Android Keystore–backed EncryptedSharedPreferences, never logged.
+      Install: <span class="mono">adb install app-debug.apk</span> → Settings → AI → paste key → chat.
+    </div>
+  </section>
+
+  <footer>Maya replica dashboard · generated from live build/test state by <span class="mono">scripts/gen_dashboard.py</span> · 2026-09-14 21:23</footer>
+</div>
+</body>
+</html>

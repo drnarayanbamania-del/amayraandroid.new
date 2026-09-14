@@ -1,0 +1,7 @@
+The Live2D model was not packaged with this build.
+
+Live2D Cubism model files (.moc3) and the Cubism SDK runtime are licensed
+separately by Live2D Inc., so they cannot be redistributed inside this open
+project. Place your licensed model files next to this file as described in
+README.txt — maya.model3.json, maya.moc3 and the textures they reference —
+and the Maya app will detect and load them automatically.

@@ -1,0 +1,2 @@
+MOCKAI: listening on 0.0.0.0:18080
+MOCKAI: POST /v1/chat/completions model=None msgs=0 roles=[] tools_declared=[] stream=None

@@ -1,0 +1,32 @@
+# --- Freebuff / tooling state ---
+.freebuff/
+.gradle/
+.kotlin/
+
+# --- Reverse-engineering scratch (APK artifacts, 71M+ binaries) ---
+analysis/
+
+# --- Secrets / signing material: NEVER commit -----------------------
+scanner/keystore.properties
+*.jks
+*.keystore
+# Local API keys (use config/config.example.json as template)
+config/config.json
+
+# --- Android / Gradle build outputs ---
+build/
+**/build/
+local.properties
+*.apk.idsig
+
+# --- Oversized TTS model blobs (109 MB > GitHub's 100 MB limit) ------
+# Shipped in APK builds but excluded from git; fetch via fetch_models.(ps1|sh)
+maya/app/src/main/assets/tts/kokoro/model.int8.onnx
+
+# --- IDE ---
+.idea/
+*.iml
+
+# --- OS ---
+.DS_Store
+Thumbs.db

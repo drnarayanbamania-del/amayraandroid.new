@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.Scanner" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:statusBarColor">@color/scanner_white</item>
+        <item name="android:navigationBarColor">@color/scanner_white</item>
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
+
+    <style name="Theme.Scanner.Splash" parent="Theme.Scanner">
+        <item name="android:windowBackground">@color/scanner_white</item>
+        <item name="android:statusBarColor">@color/scanner_white</item>
+        <item name="android:navigationBarColor">@color/scanner_white</item>
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
+</resources>

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Halo ring -->
+    <path
+        android:fillColor="#7C4DFF"
+        android:pathData="M54,20a26,26 0 1,0 0.001,0z M54,26a20,20 0 1,1 -0.001,0z" />
+    <!-- Head -->
+    <path
+        android:fillColor="#B39DDB"
+        android:pathData="M54,32c10,0 17,7 17,17c0,8 -5,13 -9,18l-2,9h-12l-2,-9c-4,-5 -9,-10 -9,-18c0,-10 7,-17 17,-17z" />
+    <!-- Eyes -->
+    <path
+        android:fillColor="#0B0E14"
+        android:pathData="M47,49a2.5,3.2 0 1,0 5,0a2.5,3.2 0 1,0 -5,0z M56,49a2.5,3.2 0 1,0 5,0a2.5,3.2 0 1,0 -5,0z" />
+    <!-- Smile -->
+    <path
+        android:strokeColor="#0B0E14"
+        android:strokeWidth="2"
+        android:fillColor="#00000000"
+        android:pathData="M49,58c3,3 7,3 10,0" />
+</vector>

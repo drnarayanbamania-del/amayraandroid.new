@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Amayra</string>
+    <string name="notif_channel_assistant">Amayra Assistant</string>
+    <string name="notif_channel_assistant_desc">Assistant status, standby and automation alerts</string>
+    <string name="notif_channel_sos">Amayra SOS</string>
+    <string name="notif_channel_sos_desc">Emergency countdown and alerts</string>
+    <string name="notif_channel_wakeword">Amayra Wake Word</string>
+    <string name="accessibility_service_desc">Lets Amayra read the screen, tap buttons in other apps, type text and take screenshots so she can run your macros.</string>
+</resources>

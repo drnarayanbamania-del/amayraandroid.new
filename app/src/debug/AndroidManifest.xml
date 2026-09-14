@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Debug-only manifest additions. Merged only into debug builds. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Test-harness-only permission: lets the debug build seed contacts for
+         verifying ContactResolver. Never present in release builds. -->
+    <uses-permission android:name="android.permission.WRITE_CONTACTS" />
+    <application>
+        <receiver
+            android:name=".TestHarnessReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.amayra.maya.SET_PROVIDER" />
+                <action android:name="com.amayra.maya.SEND_CHAT" />
+                <action android:name="com.amayra.maya.GET_STATE" />
+                <action android:name="com.amayra.maya.SET_PREFS" />
+                <action android:name="com.amayra.maya.WA_SIMULATE" />
+                <action android:name="com.amayra.maya.RESOLVE" />
+                <action android:name="com.amayra.maya.SEED_CONTACT" />
+                <action android:name="com.amayra.maya.ANSWER_CONFIRM" />
+                <action android:name="com.amayra.maya.TOOL_EXEC" />
+            </intent-filter>
+        </receiver>
+    </application>
+</manifest>
