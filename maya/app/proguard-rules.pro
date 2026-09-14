@@ -24,3 +24,8 @@
 # Tools are looked up by name in ToolRegistry (no reflection), but keep tool
 # class names stable so log/audit output stays readable.
 -keepnames class com.amayra.maya.tools.** { *; }
+
+# --- JNI boundaries (R8 must not rename natives' Java surface) ----------------
+# sherpa-onnx: C++ side resolves Kotlin classes/methods by exact name; renaming
+# breaks OfflineTts init with UnsatisfiedLinkError at first speak.
+-keep class com.k2fsa.sherpa.onnx.** { *; }
