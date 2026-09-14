@@ -266,6 +266,15 @@ class TestHarnessReceiver : BroadcastReceiver() {
                     }
                 }
             }
+            "com.amayra.maya.MEM_VALVE" -> {
+                // Debug: fire the same onTrimMemory valve the Application wires,
+                // so the release path is provable from adb (OEM ROMs don't
+                // deliver send-trim-memory reliably).
+                CoroutineScope(Dispatchers.IO).launch {
+                    app.voice.releaseHeavyEngines()
+                    MayaLog.i("HARNESS", "MEM_VALVE fired (releaseHeavyEngines called)")
+                }
+            }
             "com.amayra.maya.DUMP_LOG" -> {
                 // Internal MayaLog ring + the prefs the core actually reads —
                 // booleans/config only, never key values.

@@ -351,8 +351,23 @@ fun SettingsScreen(app: MayaApplication, onOpenPermissions: () -> Unit = {}) {
             ToggleRow("Proactive greeting on launch", p.proactiveGreeting) { v ->
                 scope.launch { app.settings.update { it[androidx.datastore.preferences.core.booleanPreferencesKey("proactive_greeting")] = v } }
             }
+            // OPPO/Realme cleaner killed even a foreground TOP process
+            // (observed 22:51 in ActivityManager). One tap → the exact screen.
+            val ctx = androidx.compose.ui.platform.LocalContext.current
+            Button(onClick = {
+                runCatching {
+                    ctx.startActivity(android.content.Intent(android.provider.Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS)
+                        .setData(android.net.Uri.parse("package:com.amayra.maya"))
+                        .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK))
+                }.onFailure {
+                    runCatching {
+                        ctx.startActivity(android.content.Intent(android.provider.Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
+                            .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK))
+                    }
+                }
+            }) { Text("Fix kills: exempt Maya from battery optimization") }
             Text(
-                "For OEMs (Xiaomi/OPPO/Vivo): allow autostart and disable battery optimization for Maya so standby survives reboots.",
+                "OPPO/Realme: tap above → Allow. Also lock Maya in Recents (pull card down → lock icon) so Phone Manager's cleaner can't kill her, and enable Allow auto-start.",
                 style = MaterialTheme.typography.labelMedium,
                 color = com.amayra.maya.ui.theme.TextDim
             )

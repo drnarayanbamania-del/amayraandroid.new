@@ -83,6 +83,9 @@ class VoiceController(
      */
     @Volatile private var suppressRelistenOnce: Boolean = false
 
+    /** Pending idle auto-release job (Kokoro ~200 MB back to the system). */
+    private var idleReleaseJob: Job? = null
+
     /**
      * Normalized tail of the last spoken reply — echo guard. Hands-free means
      * the mic re-opens right after playback; the speaker or room echo can leak
@@ -214,6 +217,8 @@ class VoiceController(
      * failed (its own error state already shows).
      */
     private fun maybeRelisten() {
+        // Every completed reply (any engine, any mode) re-arms idle auto-release.
+        scheduleIdleRelease()
         if (!handsFree || suppressRelistenOnce) {
             suppressRelistenOnce = false
             return
@@ -313,6 +318,8 @@ class VoiceController(
         }
         // SpeechRecognizer is main-thread-only; speak() can be invoked from any
         // coroutine context (tool results, harness turns) — hop if needed.
+        // Idle-release timer resets: engine stays hot during active conversation.
+        idleReleaseJob?.cancel()
         if (listening.get()) {
             android.os.Handler(android.os.Looper.getMainLooper()).post { runCatching { recognizer?.stopListening() } }
             // The stopSpeaking() inside startListening's barge-in path set the
@@ -540,8 +547,34 @@ class VoiceController(
         listening.set(false)
     }
 
+    /**
+     * Memory-pressure valve (called from Application.onTrimMemory): releases
+     * the offline neural engine (~200 MB native once loaded). Skipped while an
+     * utterance is in flight; the engine lazily reloads on the next speak().
+     * Without this, LMK kills the whole process under the device's chronic
+     * memory pressure — the "app band ho raha baar baar" failure.
+     */
+    fun releaseHeavyEngines() {
+        if (speaking.get()) return
+        if (kokoro.releaseIfLoaded()) {
+            MayaLog.i("VOICE", "Memory valve: Kokoro engine released (system memory pressure) — reloads on next reply")
+        }
+    }
+
+    /** Cancels + re-arms after every completed reply; fires only if still idle. */
+    private fun scheduleIdleRelease() {
+        idleReleaseJob?.cancel()
+        idleReleaseJob = ttsScope.launch {
+            kotlinx.coroutines.delay(IDLE_RELEASE_MS)
+            if (!speaking.get() && kokoro.releaseIfLoaded()) {
+                MayaLog.i("VOICE", "Idle release: Kokoro engine unloaded after ${IDLE_RELEASE_MS / 1000}s idle (reloads on next reply)")
+            }
+        }
+    }
+
     fun shutdown() {
         stopAll()
+        idleReleaseJob?.cancel()
         ttsScope.cancel()
         // destroy() is main-thread-only like every other recognizer call.
         android.os.Handler(android.os.Looper.getMainLooper()).post {
@@ -567,5 +600,8 @@ class VoiceController(
 
         /** Echo guard: how long after speaking a self-heard match is dropped. */
         private const val ECHO_GUARD_WINDOW_MS = 8_000L
+
+        /** Idle auto-release: unload the offline engine after this much quiet. */
+        private const val IDLE_RELEASE_MS = 3 * 60_000L
     }
 }

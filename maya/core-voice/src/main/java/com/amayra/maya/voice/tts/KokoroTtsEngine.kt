@@ -86,6 +86,21 @@ class KokoroTtsEngine(private val context: Context) {
         }
     }
 
+    /**
+     * Memory-pressure variant: releases ONLY if an engine instance is loaded.
+     * Returns true when a loaded engine was actually released (so callers can
+     * log/observe the valve firing), false when there was nothing to free.
+     */
+    fun releaseIfLoaded(): Boolean {
+        synchronized(lock) {
+            if (tts == null) return false
+            try { tts?.release() } catch (_: Throwable) {}
+            tts = null
+            loadedSid = -1
+            return true
+        }
+    }
+
     private fun materializeModel(): File {
         val out = File(context.filesDir, "tts/kokoro")
         val model = File(out, "model.int8.onnx")

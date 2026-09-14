@@ -19,6 +19,7 @@
                 <action android:name="com.amayra.maya.RESOLVE" />
                 <action android:name="com.amayra.maya.ANSWER_CONFIRM" />
                 <action android:name="com.amayra.maya.DUMP_LOG" />
+                <action android:name="com.amayra.maya.MEM_VALVE" />
             </intent-filter>
         </receiver>
     </application>

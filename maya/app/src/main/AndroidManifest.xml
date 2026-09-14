@@ -32,8 +32,10 @@
     <uses-permission android:name="android.permission.VIBRATE" />
     <!-- Device compatibility guidance (battery-optimization checks) -->
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
-    <!-- Restart assistant service after reboot when standby is enabled -->
-    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- Restart assistant service after reboot when standby is enabled -->    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+    <!-- OPPO/Realme aggressive cleaner kills the assistant; this lets Settings
+         offer a direct "exempt from battery optimization" system dialog. -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"/>
     <!-- Permissions screen parity with reference: location, gallery, bluetooth -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
