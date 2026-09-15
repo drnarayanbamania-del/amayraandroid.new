@@ -7,13 +7,21 @@ import org.tensorflow.lite.Interpreter
 import java.nio.ByteBuffer
 
 /**
- * Offline "Hey Maya" / "Wake up Maya" detection.
+ * Offline "Hey Maya" / "Wake up Maya" detection (openWakeWord pipeline).
  *
- * Three chained TFLite models (mirrors the reference app's asset layout):
- *   melspectrogram.tflite  : raw 16 kHz PCM chunk -> mel frames
- *   embedding_model.tflite : mel frames -> speech embedding frames
- *   hey_maya.tflite        : embedding window -> wake score 0..1
+ * Three chained TFLite models:
+ *   melspectrogram.tflite  : 16 kHz PCM (int16-scale float) -> mel frames
+ *   embedding_model.tflite : 76 x 32 mel window -> 96-dim speech embedding
+ *   hey_maya.tflite        : 16 x 96 embedding window -> wake score 0..1
  *   wake_up_maya.tflite    : alternative phrase
+ *
+ * Faithful to the reference streaming implementation (openWakeWord
+ * AudioFeatures._streaming_features):
+ *  - mel input is int16-SCALE float (values in ~[-32768..32767]), NOT [-1..1]
+ *  - mel output is transformed (x/10 + 2) before the embedding model
+ *  - each 1280-sample step runs mel over the last 1760 samples (480-sample
+ *    overlap) so mel frames advance in stride-8 steps, matching training
+ *  - one 96-dim embedding per step; keyword scores the last 16 embeddings
  *
  * All shapes are introspected at load; if any link doesn't fit, the engine
  * reports [available] = false and the service degrades honestly (no fake
@@ -28,121 +36,157 @@ class WakeWordEngine private constructor(
     var available: Boolean = true
         private set
 
-    /** Samples of 16 kHz audio per mel chunk (from the mel model's input shape). */
+    /** New 16 kHz PCM samples consumed per [feed] step (1280 = 80 ms). */
     val chunkSamples: Int
-    private val melFramesPerChunk: Int
-    private val melDims: Int
-    private val embDims: Int
+
+    /** Samples per mel invocation = chunk + reference's 3-frame overlap. */
+    private val melInSamples: Int
+    private val melFramesPerStep: Int
+    private val melBins: Int
+    private val embWindow: Int      // mel frames per embedding window (76)
+    private val embDims: Int        // 96
+    private val embFramesPerStep: Int
     private val wakeWindowFrames: Int
 
+    private val rawRing: WakeWordMath.RawRing
     private val melHistory = ArrayDeque<FloatArray>()
     private val embHistory = ArrayDeque<FloatArray>()
-
-    /** Smoothed score + confirmation counter to cut false triggers. */
-    private var hotStreak = 0
+    private val gate = WakeWordMath.StreakGate()
 
     var threshold: Float = 0.75f
     var useAlternative: Boolean = false
     val phrase: String get() = if (useAlternative) "wake up maya" else "hey maya"
 
     init {
+        // ── Mel model ────────────────────────────────────────────────────
         val melIn = TFLiteSupport.inputShape(mel, 0) ?: intArrayOf(1, 1280)
-        chunkSamples = if (melIn.size >= 2 && melIn[1] in 160..8192) melIn[1] else 1280
+        val staticIn = melIn.getOrNull(1)?.takeIf { it > 0 }
+        if (staticIn != null) {
+            chunkSamples = staticIn
+            melInSamples = staticIn
+        } else {
+            // Dynamic input: pin it exactly like the reference implementation
+            // (fixed window => static output shape + stride-8 frame cadence).
+            chunkSamples = CHUNK_SAMPLES
+            melInSamples = CHUNK_SAMPLES + OVERLAP_SAMPLES
+            runCatching {
+                mel.resizeInput(0, intArrayOf(1, melInSamples))
+                mel.allocateTensors()
+            }.onFailure { MayaLog.w("WAKE", "mel resize failed: ${it.message}") }
+        }
         val melOut = TFLiteSupport.outputShape(mel, 0) ?: intArrayOf(1, 8, 32)
-        melFramesPerChunk = if (melOut.size >= 2) melOut[melOut.size - 2] else 8
-        melDims = melOut.last()
+        rawRing = WakeWordMath.RawRing(maxSamples = melInSamples + CHUNK_SAMPLES)
+        melFramesPerStep = melOut.getOrNull(melOut.size - 2)?.takeIf { it > 0 }
+            ?: (melInSamples / MEL_HOP - 3)
+        melBins = melOut.last()
 
-        val embIn = TFLiteSupport.inputShape(embedding, 0) ?: intArrayOf(1, 8, 32)
-        val embOut = TFLiteSupport.outputShape(embedding, 0) ?: intArrayOf(1, 8, 96)
+        // ── Embedding model: input [1, 76, 32, 1] (frames, mel bins, channel) ──
+        val embIn = TFLiteSupport.inputShape(embedding, 0) ?: intArrayOf(1, 76, melBins, 1)
+        embWindow = embIn.getOrNull(1)?.takeIf { it > 0 } ?: 76
+        val embMelBins = if (embIn.size >= 3) embIn[embIn.size - 2] else melBins
+        val embOut = TFLiteSupport.outputShape(embedding, 0) ?: intArrayOf(1, 96)
         embDims = embOut.last()
+        embFramesPerStep = if (embOut.size >= 2) {
+            embOut[embOut.size - 2].takeIf { it > 0 } ?: 1
+        } else 1
 
+        // ── Keyword model: input [1, 16, 96] (embedding frames) ─────────
         val kwIn = TFLiteSupport.inputShape(keyword, 0) ?: intArrayOf(1, 16, embDims)
-        wakeWindowFrames = if (kwIn.size >= 2) kwIn[1] else 16
+        wakeWindowFrames = kwIn.getOrNull(1)?.takeIf { it > 0 } ?: 16
 
-        val shapeOk = (melOut.size == 3 && melOut.last() == embIn.last()) &&
-            (embOut.last() == kwIn.last())
+        // Compare semantic dims: mel bins vs the embedding input's SECOND-to-last
+        // dim (its last dim is the channel axis), and embedding dim vs keyword's.
+        val shapeOk = (melBins == embMelBins) && (embDims == kwIn.last())
         if (!shapeOk) {
             available = false
             MayaLog.w("WAKE", "Model chain mismatch: mel=$melOut emb-in=$embIn kw=$kwIn")
         } else {
             MayaLog.i(
                 "WAKE",
-                "Wake chain ok: chunk=$chunkSamples mel=${melOut.joinToString("x")} " +
+                "Wake chain ok: chunk=$chunkSamples melIn=$melInSamples " +
+                    "melStep=${melFramesPerStep}x$melBins embWin=$embWindow " +
                     "emb=${embOut.joinToString("x")} wake-window=$wakeWindowFrames"
             )
         }
     }
 
-    /** Feed the next PCM chunk (16 kHz mono float). Returns 0..1 wake score for this step. */
+    /**
+     * Feed the next PCM chunk (16 kHz mono float in [-1..1]; the engine scales
+     * it to the int16 range the mel model expects). Returns 0..1 wake score.
+     */
     fun feed(chunk: FloatArray): Float {
         if (!available) return 0f
-        if (chunk.size != chunkSamples) return 0f
-        val melOut = runMel(chunk) ?: return 0f
+        if (chunk.isEmpty()) return 0f
+        appendRaw(chunk)
+        val melOut = runMel() ?: return 0f
         pushMel(melOut)
-        val emb = runEmbedding() ?: return 0f
-        pushEmb(emb)
+        if (!runEmbedding()) return 0f
         return runKeyword()
     }
 
     /** Reset streaming history + streak (call between sessions). */
     fun reset() {
+        rawRing.clear()
         melHistory.clear()
         embHistory.clear()
-        hotStreak = 0
+        gate.reset()
     }
 
-    private fun runMel(chunk: FloatArray): FloatArray? = try {
-        val inBuf = TFLiteSupport.floatBuf(chunk.size)
-        inBuf.asFloatBuffer().put(chunk)
-        val frames = melFramesPerChunk
-        val outBuf = TFLiteSupport.floatBuf(frames * melDims)
-        mel.run(inBuf, outBuf)
-        outBuf.rewind()
-        FloatArray(frames * melDims) { outBuf.asFloatBuffer().get(it) }
-    } catch (t: Throwable) {
-        MayaLog.w("WAKE", "mel failed: ${t.message}")
-        null
+    private fun appendRaw(chunk: FloatArray) {
+        // Scale to the int16 range: the mel model was trained on raw PCM.
+        rawRing.append(WakeWordMath.int16Scale(chunk))
     }
 
-    private fun pushMel(melOut: FloatArray) {
-        // split into individual frames
-        var i = 0
-        while (i + melDims <= melOut.size) {
-            melHistory.addLast(melOut.copyOfRange(i, i + melDims))
-            i += melDims
-        }
-        while (melHistory.size > MAX_MEL_HISTORY) melHistory.removeFirst()
-    }
-
-    private fun runEmbedding(): FloatArray? {
-        val embInFrames = TFLiteSupport.inputShape(embedding, 0)
-            ?.getOrNull(1)?.coerceAtLeast(1) ?: melFramesPerChunk
-        if (melHistory.size < embInFrames) return null
+    private fun runMel(): FloatArray? {
+        val input = rawRing.lastSamples(melInSamples) ?: return null
+        val inBuf = TFLiteSupport.floatBuf(input.size)
+        inBuf.asFloatBuffer().put(input)
+        val outBuf = TFLiteSupport.floatBuf(melFramesPerStep * melBins)
         return try {
-        val lastN = melHistory.takeLast(embInFrames)
-        val inBuf = TFLiteSupport.floatBuf(embInFrames * melDims)
-        val fb = inBuf.asFloatBuffer()
-        for (f in lastN) fb.put(f)
-        inBuf.rewind()
-        val embOut = TFLiteSupport.outputShape(embedding, 0) ?: intArrayOf(1, embInFrames, embDims)
-        val outFrames = if (embOut.size >= 2) embOut[embOut.size - 2] else embInFrames
-        val outBuf = TFLiteSupport.floatBuf(outFrames * embDims)
-        embedding.run(inBuf, outBuf)
-        outBuf.rewind()
-        FloatArray(outFrames * embDims) { outBuf.asFloatBuffer().get(it) }
+            mel.run(inBuf, outBuf)
+            outBuf.rewind()
+            val fb = outBuf.asFloatBuffer()
+            // Reference transform: spec/10 + 2 — aligns the TFLite mel model's
+            // output distribution with Google's native speech_embedding input.
+            FloatArray(melFramesPerStep * melBins) { fb.get(it) / 10f + 2f }
         } catch (t: Throwable) {
-            MayaLog.w("WAKE", "embedding failed: ${t.message}")
+            MayaLog.w("WAKE", "mel failed: ${t.message}")
             null
         }
     }
 
-    private fun pushEmb(embOut: FloatArray) {
+    private fun pushMel(melOut: FloatArray) {
         var i = 0
-        while (i + embDims <= embOut.size) {
-            embHistory.addLast(embOut.copyOfRange(i, i + embDims))
-            i += embDims
+        while (i + melBins <= melOut.size) {
+            melHistory.addLast(melOut.copyOfRange(i, i + melBins))
+            i += melBins
         }
-        while (embHistory.size > wakeWindowFrames * 4) embHistory.removeFirst()
+        while (melHistory.size > MAX_MEL_HISTORY) melHistory.removeFirst()
+    }
+
+    private fun runEmbedding(): Boolean {
+        if (melHistory.size < embWindow) return false
+        val lastN = melHistory.takeLast(embWindow)
+        val inBuf = TFLiteSupport.floatBuf(embWindow * melBins)
+        val fb = inBuf.asFloatBuffer()
+        for (f in lastN) fb.put(f)
+        inBuf.rewind()
+        val outBuf = TFLiteSupport.floatBuf(embFramesPerStep * embDims)
+        return try {
+            embedding.run(inBuf, outBuf)
+            outBuf.rewind()
+            val vfb = outBuf.asFloatBuffer()
+            var i = 0
+            while (i + embDims <= embFramesPerStep * embDims) {
+                embHistory.addLast(FloatArray(embDims) { vfb.get(i + it) })
+                i += embDims
+            }
+            while (embHistory.size > wakeWindowFrames * 4) embHistory.removeFirst()
+            true
+        } catch (t: Throwable) {
+            MayaLog.w("WAKE", "embedding failed: ${t.message}")
+            false
+        }
     }
 
     private fun runKeyword(): Float {
@@ -158,20 +202,11 @@ class WakeWordEngine private constructor(
             kw.run(inBuf, outBuf)
             outBuf.rewind()
             val score = outBuf.asFloatBuffer().get(0).coerceIn(0f, 1f)
-            smoothed(score)
+            gate.score(score, threshold)
         } catch (t: Throwable) {
             MayaLog.w("WAKE", "keyword failed: ${t.message}")
             0f
         }
-    }
-
-    private fun smoothed(raw: Float): Float {
-        // Trigger when the model stays hot for 2 consecutive scored windows.
-        if (raw >= threshold) hotStreak++ else hotStreak = 0
-        return if (hotStreak >= 2) {
-            hotStreak = 0
-            1f
-        } else raw
     }
 
     fun close() {
@@ -179,6 +214,9 @@ class WakeWordEngine private constructor(
     }
 
     companion object {
+        private const val CHUNK_SAMPLES = 1280      // 80 ms @ 16 kHz
+        private const val OVERLAP_SAMPLES = 480     // reference: 3 x 160 hop
+        private const val MEL_HOP = 160
         private const val MAX_MEL_HISTORY = 128
 
         fun load(context: Context): WakeWordEngine? {
