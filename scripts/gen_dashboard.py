@@ -2,14 +2,14 @@
 """Generate preview/index.html from live project state.
 
 Sources of truth:
-  - docs/FEATURE_MATRIX.md        -> feature tables (v4.15.1 + retained 3.0)
-  - E:/maya-build test-results    -> unit test counts (JUnit XML)
-  - E:/maya-build app-debug.apk   -> artifact size/mtime
-  - gradle/libs.versions.toml     -> AGP/Kotlin versions
-  - gradle/wrapper/*.properties   -> Gradle version
-  - app/build.gradle.kts          -> compileSdk/minSdk
-  - app/src/main/java tree        -> Kotlin file counts per package
-  - app/src/main/assets tree      -> bundled asset sizes
+  - maya/docs/FEATURE_MATRIX.md     -> feature tables (v4.15.1 + retained 3.0)
+  - C:/maya-build/maya test-results -> unit test counts (JUnit XML, all modules)
+  - C:/maya-build/maya app apks     -> artifact size/mtime (debug + release)
+  - maya/gradle/libs.versions.toml  -> AGP/Kotlin versions
+  - maya/gradle/wrapper/*.properties -> Gradle version
+  - maya/app/build.gradle.kts       -> compileSdk/minSdk
+  - maya/app/src/main/java tree     -> Kotlin file counts per package
+  - maya/app/src/main/assets tree   -> bundled asset sizes
 
 Usage:  python scripts/gen_dashboard.py
 Run after builds/tests to refresh the dashboard (the Preview tab reloads it
@@ -26,12 +26,14 @@ import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-BUILD = Path(os.environ.get("MAYA_BUILD_DIR", "E:/maya-build/app"))
+PROJ = ROOT / "maya"  # the Gradle project lives under maya/ since the module restructure
+BUILD = Path(os.environ.get("MAYA_BUILD_DIR", "C:/maya-build/maya/app"))
 OUT = ROOT / "preview" / "index.html"
 
 # Curated changelog shown in the "Latest engineering changes" section.
 # Newest first; keep entries short and outcome-focused.
 RECENT_FIXES = [
+    ("2026-09-15", "voice", "Wake-word engine fixed against the openWakeWord reference pipeline — the 3-model chain (melspectrogram → speech_embedding → hey_maya) never loaded on device ('Model chain mismatch'), and even if it had, detection would have been garbage. Four root causes: the shape check compared the mel output's last dim (32 mel bins) against the embedding input's channel axis instead of its second-to-last dim; mel input was normalized [-1..1] instead of int16-scale PCM; the reference /10+2 mel transform was missing; and mel ran per-chunk instead of the reference 1760-sample window with 480-sample overlap (stride-8 frame cadence). Engine rewritten faithfully (partial-read tolerant), streaming math split into WakeWordMath with 11 unit tests, fix pushed (f7551a2), release APK rebuilt on the matching E:-cert for in-place update. Live 'Hey Maya' screen-off verification pending USB."),
     ("2026-09-14", "voice", "Voice upgrade: Piper priyamvada replaced with Kokoro-82M int8 (sherpa-onnx) — a generation-better natural female Hindi voice (hf_ speaker), fully offline, zero quota. 178 MB bundle ships in the APK (model.int8.onnx + voices.bin + tokens + espeak-ng-data with Hindi dict); engine is speaker-id-selectable via pref (default hf=47) so other voices can be tried without a rebuild. Old 'piper' engine pref migrates transparently to the new engine slot. Installed (401 MB APK); final sound check is the user's first spoken turn — Android-TTS fallback chain covers any init failure."),
     ("2026-09-14", "ui", "Settings + Diagnostics brought onto the new design language: Settings section cards now use the rounded-16 + hairline-stroke treatment matching chat bubbles; Diagnostics status rows replaced emoji indicators with colored status dots (green ok / red problem / dim info) in the same card style. Built and installed; on-device Settings render was interrupted mid-verification (phone went into active use — an errant automation tap was immediately cancelled via BACK), so a final visual pass on these two screens is pending user's quiet-phone confirmation."),
     ("2026-09-14", "ui", "Professional UI polish pass: chat-style asymmetric message bubbles (user tail-right, Maya tail-left) with hairline borders, live status pill under the avatar (colored dot + state: Listening/Thinking/Speaking), pill input bar with borderless field and circular violet send button, tinted mic/stop/attach actions, cleaner tool chips, and a refined dark palette (softer surfaces, tuned typography/line-heights). Verified rendering on-device via UI dump; screenshot on Desktop (maya_new_ui.png)."),
@@ -154,12 +156,12 @@ def apk_info():
 
 
 def toolchain():
-    toml = read(ROOT / "gradle" / "libs.versions.toml")
+    toml = read(PROJ / "gradle" / "libs.versions.toml")
     agp = re.search(r'^agp\s*=\s*"([^"]+)"', toml, re.M)
     kotlin = re.search(r'^kotlin\s*=\s*"([^"]+)"', toml, re.M)
-    wrapper = read(ROOT / "gradle" / "wrapper" / "gradle-wrapper.properties")
+    wrapper = read(PROJ / "gradle" / "wrapper" / "gradle-wrapper.properties")
     gradle = re.search(r"gradle-([0-9.]+)-", wrapper)
-    app_grad = read(ROOT / "app" / "build.gradle.kts")
+    app_grad = read(PROJ / "app" / "build.gradle.kts")
     compile_sdk = re.search(r"release\((\d+)\)", app_grad)
     min_sdk = re.search(r"minSdk\s*=\s*(\d+)", app_grad)
     return (
@@ -173,7 +175,7 @@ def toolchain():
 
 def source_map():
     """Package dir -> file count, under app/src/main/java/com/amayra/maya."""
-    base = ROOT / "app" / "src" / "main" / "java" / "com" / "amayra" / "maya"
+    base = PROJ / "app" / "src" / "main" / "java" / "com" / "amayra" / "maya"
     descriptions = {
         "ai": "Models · AiClient · GeminiClient · OpenAiCompatClient",
         "avatar": "AvatarController · renderers (holographic + Live2D pluggable)",
@@ -228,7 +230,7 @@ def source_map():
 
 
 def asset_map():
-    base = ROOT / "app" / "src" / "main" / "assets"
+    base = PROJ / "app" / "src" / "main" / "assets"
     out = []
     if base.is_dir():
         for d in sorted(base.iterdir()):

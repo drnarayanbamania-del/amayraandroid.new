@@ -77,17 +77,17 @@
       <h1>Maya <span>·</span> Android AI Assistant</h1>
       <div class="sub">Clean-room behavioral replica · upgraded to <b>maya-v4.15.1 parity</b> · Kotlin + Jetpack Compose · namespace <span class="mono">com.amayra.maya</span></div>
     </div>
-    <div class="badge">BUILD SUCCESSFUL · 24/24 TESTS</div>
+    <div class="badge">BUILD SUCCESSFUL · 27/27 TESTS</div>
   </header>
 
   <div class="grid">
-    <div class="stat"><div class="k">Debug APK</div><div class="v">not built</div><div class="d">run <span class="mono">./gradlew assembleDebug</span></div></div>
+    <div class="stat"><div class="k">Debug APK</div><div class="v">266 MB</div><div class="d">C:\maya-build\maya\app\outputs\apk\debug\app-debug.apk<br>built 13 min ago · ships Guardian + wake-word models</div></div>
     <div class="stat"><div class="k">Toolchain</div><div class="v">AGP 9.3.1</div>
       <div class="d">Kotlin 2.2.10 · Gradle 9.5.0 · compileSdk 37 · minSdk 24 · TFLite 2.16 · ML Kit · CameraX</div></div>
     <div class="stat"><div class="k">AI Providers</div><div class="v">Gemini + OpenAI-compat</div>
       <div class="d">Groq · OpenRouter · OpenAI · local (LM Studio / Ollama) · Gemini TTS voices</div></div>
-    <div class="stat"><div class="k">Source files</div><div class="v">71 Kotlin files</div>
-      <div class="d">28 packages incl. guardian · wakeword · tts · persona · accessibility · screen</div></div>
+    <div class="stat"><div class="k">Source files</div><div class="v">21 Kotlin files</div>
+      <div class="d">13 packages incl. guardian · wakeword · tts · persona · accessibility · screen</div></div>
   </div>
 
   <section>
@@ -164,6 +164,7 @@
     <h2>Latest engineering changes</h2>
     <table>
       <tr><th>Date</th><th>Area</th><th>Change</th></tr>
+      <tr><td class="mono">2026-09-15</td><td style="color:var(--dim);white-space:nowrap">voice</td><td>Wake-word engine fixed against the openWakeWord reference pipeline — the 3-model chain (melspectrogram → speech_embedding → hey_maya) never loaded on device ('Model chain mismatch'), and even if it had, detection would have been garbage. Four root causes: the shape check compared the mel output's last dim (32 mel bins) against the embedding input's channel axis instead of its second-to-last dim; mel input was normalized [-1..1] instead of int16-scale PCM; the reference /10+2 mel transform was missing; and mel ran per-chunk instead of the reference 1760-sample window with 480-sample overlap (stride-8 frame cadence). Engine rewritten faithfully (partial-read tolerant), streaming math split into WakeWordMath with 11 unit tests, fix pushed (f7551a2), release APK rebuilt on the matching E:-cert for in-place update. Live 'Hey Maya' screen-off verification pending USB.</td></tr>
       <tr><td class="mono">2026-09-14</td><td style="color:var(--dim);white-space:nowrap">voice</td><td>Voice upgrade: Piper priyamvada replaced with Kokoro-82M int8 (sherpa-onnx) — a generation-better natural female Hindi voice (hf_ speaker), fully offline, zero quota. 178 MB bundle ships in the APK (model.int8.onnx + voices.bin + tokens + espeak-ng-data with Hindi dict); engine is speaker-id-selectable via pref (default hf=47) so other voices can be tried without a rebuild. Old 'piper' engine pref migrates transparently to the new engine slot. Installed (401 MB APK); final sound check is the user's first spoken turn — Android-TTS fallback chain covers any init failure.</td></tr>
       <tr><td class="mono">2026-09-14</td><td style="color:var(--dim);white-space:nowrap">ui</td><td>Settings + Diagnostics brought onto the new design language: Settings section cards now use the rounded-16 + hairline-stroke treatment matching chat bubbles; Diagnostics status rows replaced emoji indicators with colored status dots (green ok / red problem / dim info) in the same card style. Built and installed; on-device Settings render was interrupted mid-verification (phone went into active use — an errant automation tap was immediately cancelled via BACK), so a final visual pass on these two screens is pending user's quiet-phone confirmation.</td></tr>
       <tr><td class="mono">2026-09-14</td><td style="color:var(--dim);white-space:nowrap">ui</td><td>Professional UI polish pass: chat-style asymmetric message bubbles (user tail-right, Maya tail-left) with hairline borders, live status pill under the avatar (colored dot + state: Listening/Thinking/Speaking), pill input bar with borderless field and circular violet send button, tinted mic/stop/attach actions, cleaner tool chips, and a refined dark palette (softer surfaces, tuned typography/line-heights). Verified rendering on-device via UI dump; screenshot on Desktop (maya_new_ui.png).</td></tr>
@@ -189,22 +190,11 @@
   <section>
     <h2>Project map (live source tree)</h2>
     <div class="files">
-<div class="file"><b>accessibility/</b><span>MayaAccessibilityService · MacroEngine · macro tools · <b style="color:var(--text)">3 kt</b></span></div>
-<div class="file"><b>ai/</b><span>Models · AiClient · GeminiClient · OpenAiCompatClient · <b style="color:var(--text)">6 kt</b></span></div>
-<div class="file"><b>avatar/</b><span>AvatarController · renderers (holographic + Live2D pluggable) · <b style="color:var(--text)">4 kt</b></span></div>
-<div class="file"><b>avatar/anime/</b><span>AnimeAvatarRenderer.kt · <b style="color:var(--text)">1 kt</b></span></div>
-<div class="file"><b>avatar/live2d/</b><span>Live2DController.kt · Live2DModelRepository.kt · Live2DModelSpec.kt · Live2DRenderer.kt · <b style="color:var(--text)">4 kt</b></span></div>
-<div class="file"><b>core/</b><span>MayaCognitiveCore · StateBus · MayaCoreService · MayaLog · <b style="color:var(--text)">5 kt</b></span></div>
-<div class="file"><b>data/</b><span>messages · memories · tool logs · auto-reply log · <b style="color:var(--text)">1 kt</b></span></div>
-<div class="file"><b>events/</b><span>EventBus · MayaNotificationListener · <b style="color:var(--text)">2 kt</b></span></div>
-<div class="file"><b>integration/</b><span>Termux · WhatsApp · OpenClaw · SOS · CallManager · PcRelay · <b style="color:var(--text)">9 kt</b></span></div>
-<div class="file"><b>memory/</b><span>SecureStore (Keystore) · <b style="color:var(--text)">1 kt</b></span></div>
-<div class="file"><b>persona/</b><span>Persona (Maya/Friday/Venom) · PersonaManager · switch tool · <b style="color:var(--text)">2 kt</b></span></div>
-<div class="file"><b>screen/</b><span>ScreenCaptureService · ScreenShareBus · <b style="color:var(--text)">1 kt</b></span></div>
-<div class="file"><b>settings/</b><span>SettingsRepository (DataStore) · <b style="color:var(--text)">1 kt</b></span></div>
-<div class="file"><b>tools/</b><span>ToolRegistry · RiskLevel · device/screen tools · <b style="color:var(--text)">6 kt</b></span></div>
-<div class="file"><b>ui/chat/</b><span>ChatScreen.kt · <b style="color:var(--text)">1 kt</b></span></div>
-<div class="file"><b>ui/diagnostics/</b><span>DiagnosticsScreen.kt · <b style="color:var(--text)">1 kt</b></span></div>
+<div class="file"><b>core/</b><span>MayaCognitiveCore · StateBus · MayaCoreService · MayaLog · <b style="color:var(--text)">1 kt</b></span></div>
+<div class="file"><b>events/</b><span>EventBus · MayaNotificationListener · <b style="color:var(--text)">1 kt</b></span></div>
+<div class="file"><b>perms/</b><span> · <b style="color:var(--text)">1 kt</b></span></div>
+<div class="file"><b>ui/chat/</b><span>ChatScreen.kt · LastErrorBanner.kt · <b style="color:var(--text)">2 kt</b></span></div>
+<div class="file"><b>ui/diagnostics/</b><span>AgentDebugPanel.kt · DiagnosticsScreen.kt · EngineStatusDialog.kt · <b style="color:var(--text)">3 kt</b></span></div>
 <div class="file"><b>ui/home/</b><span>MyraHomeScreen.kt · <b style="color:var(--text)">1 kt</b></span></div>
 <div class="file"><b>ui/memories/</b><span>RecollectionsScreen.kt · <b style="color:var(--text)">1 kt</b></span></div>
 <div class="file"><b>ui/permissions/</b><span>PermissionsScreen.kt · <b style="color:var(--text)">1 kt</b></span></div>
@@ -212,10 +202,6 @@
 <div class="file"><b>ui/settings/</b><span>SettingsScreen.kt · VoiceGuardianSection.kt · <b style="color:var(--text)">2 kt</b></span></div>
 <div class="file"><b>ui/setup/</b><span>SetupGateScreen.kt · <b style="color:var(--text)">1 kt</b></span></div>
 <div class="file"><b>ui/theme/</b><span>Theme.kt · <b style="color:var(--text)">1 kt</b></span></div>
-<div class="file"><b>voice/</b><span>VoiceController (STT + TTS arbiter + engine selection) · <b style="color:var(--text)">1 kt</b></span></div>
-<div class="file"><b>voice/guardian/</b><span>SpeakerEmbedder · SpeechGate · ScoreNormalizer · VoiceGuardian · <b style="color:var(--text)">6 kt</b></span></div>
-<div class="file"><b>voice/tts/</b><span>GeminiTtsClient (interactions + generateContent fallback) · <b style="color:var(--text)">1 kt</b></span></div>
-<div class="file"><b>voice/wakeword/</b><span>WakeWordEngine (3-model chain) · WakeWordService (mic FGS) · <b style="color:var(--text)">2 kt</b></span></div>
 <div class="file"><b>&lt;root&gt;/</b><span>AppGraph.kt · ImageUtils.kt · MainActivity.kt · MayaApplication.kt · ToolsScreen.kt · <b style="color:var(--text)">5 kt</b></span></div>
     </div>
   </section>
@@ -226,6 +212,7 @@
 <div class="file"><b>assets/guardian/</b><span>3 files · 42.7 MB</span></div>
 <div class="file"><b>assets/live2d/</b><span>2 files · 4 KB</span></div>
 <div class="file"><b>assets/macros/</b><span>1 files · 7 KB</span></div>
+<div class="file"><b>assets/tts/</b><span>358 files · 177.5 MB</span></div>
 <div class="file"><b>assets/wakeword/</b><span>4 files · 3.5 MB</span></div>
     </div>
   </section>
@@ -246,7 +233,7 @@
     </div>
   </section>
 
-  <footer>Maya replica dashboard · generated from live build/test state by <span class="mono">scripts/gen_dashboard.py</span> · 2026-09-15 19:05</footer>
+  <footer>Maya replica dashboard · generated from live build/test state by <span class="mono">scripts/gen_dashboard.py</span> · 2026-09-15 23:12</footer>
 </div>
 </body>
 </html>
