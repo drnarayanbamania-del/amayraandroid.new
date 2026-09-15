@@ -44,6 +44,12 @@ android {
     }
 
     buildTypes {
+        debug {
+            // Sign debug with the SAME keystore as release (keystore.properties,
+            // the E:-drive debug key the installed app uses) so adb install -r
+            // always works regardless of ANDROID_USER_HOME env drift.
+            signingConfig = signingConfigs.getByName("release")
+        }
         release {
             isMinifyEnabled = true
             isShrinkResources = true

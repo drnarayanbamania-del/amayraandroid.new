@@ -106,12 +106,30 @@ class WakeWordService : Service() {
         val guardBuf = if (guardian != null) VoiceGuardian.VoicedBuffer() else null
         MayaLog.i("WAKE", "Wake-word loop started (${wwe.chunkSamples}-sample chunks)")
         var lastTriggerAt = 0L
+        var lastScoreLogAt = 0L
+        var lastAudioAt = android.os.SystemClock.elapsedRealtime()
+        var lastHealthLogAt = lastAudioAt
+        var silenceSinceMs = -1L
         try {
             while (running) {
                 val n = record.read(chunk, 0, chunk.size)
                 if (n <= 0) continue
+                val now = android.os.SystemClock.elapsedRealtime()
+                lastAudioAt = now
+                var peak = 0
+                for (i in 0 until n step 16) {
+                    val a = if (chunk[i] < 0) -chunk[i].toInt() else chunk[i].toInt()
+                    if (a > peak) peak = a
+                }
                 val floats = FloatArray(n) { chunk[it] / 32768f }
                 val score = wwe.feed(floats)
+                // Wake telemetry: log near-miss candidates so misses/false
+                // triggers can be tuned from logcat without a rebuild.
+                val raw = wwe.lastRawScore
+                if (raw >= 0.10f && now - lastScoreLogAt > 1_000) {
+                    lastScoreLogAt = now
+                    MayaLog.d("WAKE", "score=%.3f (threshold %.2f)".format(raw, wwe.threshold))
+                }
                 if (score >= 1f) {
                     // Duplicate-trigger cooldown: hotword echo / engine double-fire
                     // within this window is swallowed instead of restarting STT.
@@ -124,6 +142,21 @@ class WakeWordService : Service() {
                     MayaLog.i("WAKE", "Wake word detected!")
                     StateBus.setState(AssistantState.Listening())
                     StateBus.publishWake()
+                }
+                // Mic-health watchdog: a silent mic (OEM audio-server quirk)
+                // shows as reads succeeding but all-zero samples. Log the
+                // health line and report dead silence every 20 s.
+                val silent = peak == 0
+                if (silent && silenceSinceMs < 0) silenceSinceMs = now
+                if (!silent) silenceSinceMs = -1
+                if (now - lastHealthLogAt > 20_000) {
+                    lastHealthLogAt = now
+                    if (silenceSinceMs < 0) {
+                        MayaLog.d("WAKE", "mic ok (peak=%d, last %.1fs ago)".format(peak, (now - lastAudioAt) / 1000f))
+                        silenceSinceMs = -1
+                    } else {
+                        MayaLog.w("WAKE", "MIC SILENT for %.0fs — audio pipeline dead (OEM?)".format((now - silenceSinceMs) / 1000f))
+                    }
                 }
                 // Guardian piggyback: collect voiced audio and verify when a window fills.
                 if (guardBuf != null) {

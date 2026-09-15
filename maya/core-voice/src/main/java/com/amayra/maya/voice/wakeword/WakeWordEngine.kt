@@ -53,9 +53,16 @@ class WakeWordEngine private constructor(
     private val embHistory = ArrayDeque<FloatArray>()
     private val gate = WakeWordMath.StreakGate()
 
-    var threshold: Float = 0.75f
+    // openWakeWord's standard threshold. On-device telemetry showed real
+    // triggers peaking ~0.74 at 0.75 (near-miss); 0.5 + the 2-window
+    // confirmation gate is the reference-default sensitivity.
+    var threshold: Float = 0.5f
     var useAlternative: Boolean = false
     val phrase: String get() = if (useAlternative) "wake up maya" else "hey maya"
+
+    /** Last raw keyword score (pre-confirmation-gate) — wake telemetry. */
+    var lastRawScore: Float = 0f
+        private set
 
     init {
         // ── Mel model ────────────────────────────────────────────────────
@@ -202,6 +209,7 @@ class WakeWordEngine private constructor(
             kw.run(inBuf, outBuf)
             outBuf.rewind()
             val score = outBuf.asFloatBuffer().get(0).coerceIn(0f, 1f)
+            lastRawScore = score
             gate.score(score, threshold)
         } catch (t: Throwable) {
             MayaLog.w("WAKE", "keyword failed: ${t.message}")
