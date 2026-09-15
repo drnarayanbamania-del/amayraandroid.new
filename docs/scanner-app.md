@@ -7,10 +7,19 @@ the Maya assistant) with a blue `#1469E8` / white Material 3 UI.
 ## Install
 
 ```bash
-# from the project root (Maya workspace)
-env -u ANDROID_SDK_HOME ANDROID_USER_HOME="E:/Android/dotandroid" \
-  ./gradlew --project-cache-dir C:/maya-build/project-cache :scanner:assembleDebug
-adb install C:/maya-build/scanner/outputs/apk/debug/scanner-debug.apk
+# from the project root (Maya workspace); Gradle caches live on E: (C: is full)
+env -u ANDROID_SDK_HOME ANDROID_USER_HOME="E:/Android/dotandroid" GRADLE_USER_HOME="E:/gradle-home" \
+  ./gradlew --project-cache-dir E:/maya-build/project-cache :scanner:assembleDebug
+adb install E:/maya-build/scanner/outputs/apk/debug/scanner-debug.apk
+```
+
+Release (signed with `scanner/scanner-release.jks`, credentials in
+`scanner/keystore.properties`):
+
+```bash
+env -u ANDROID_SDK_HOME ANDROID_USER_HOME="E:/Android/dotandroid" GRADLE_USER_HOME="E:/gradle-home" \
+  ./gradlew --project-cache-dir E:/maya-build/project-cache :scanner:assembleRelease
+# → E:/maya-build/scanner/outputs/apk/release/scanner-release.apk
 ```
 
 > The `env -u ANDROID_SDK_HOME ...` prefix works around conflicting
@@ -29,6 +38,7 @@ adb install C:/maya-build/scanner/outputs/apk/debug/scanner-debug.apk
 | PDF extraction | `PdfRenderer` → bitmaps → OCR (max 20 pages, ~160 dpi) |
 | Handwriting mode | Camera flow tagged `handwriting` with dedicated messaging |
 | Edit before OCR | Brightness/contrast sliders, sharpen, shadow removal, B&W, rotate |
+| Pre-scan quality check | `ImageQuality` analyzes each photo (dark / blurry / low-res via mean luma, dark-pixel ratio, Laplacian variance, effective width). Amber advisory banner on the Edit screen before extraction; cause-specific failure messages replace the generic error |
 | OCR | ML Kit bundled recognizers: Latin, Devanagari, Chinese, Japanese, Korean; auto mode falls back across scripts and keeps the richest result |
 | Result screen | Editable text, word/char count, name field, Copy / Share / Save / Export PDF |
 | Translation | ML Kit on-device translate: en, hi, fr, de, es, it, zh, ja — models download once, then work offline |

@@ -3,8 +3,8 @@
 
 Sources of truth:
   - docs/FEATURE_MATRIX.md        -> feature tables (v4.15.1 + retained 3.0)
-  - C:/maya-build test-results    -> unit test counts (JUnit XML)
-  - C:/maya-build app-debug.apk   -> artifact size/mtime
+  - E:/maya-build test-results    -> unit test counts (JUnit XML)
+  - E:/maya-build app-debug.apk   -> artifact size/mtime
   - gradle/libs.versions.toml     -> AGP/Kotlin versions
   - gradle/wrapper/*.properties   -> Gradle version
   - app/build.gradle.kts          -> compileSdk/minSdk
@@ -26,7 +26,7 @@ import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-BUILD = Path(os.environ.get("MAYA_BUILD_DIR", "C:/maya-build/maya/app"))
+BUILD = Path(os.environ.get("MAYA_BUILD_DIR", "E:/maya-build/app"))
 OUT = ROOT / "preview" / "index.html"
 
 # Curated changelog shown in the "Latest engineering changes" section.

@@ -29,12 +29,37 @@ object ImageEnhancer {
     fun loadScaled(context: android.content.Context, uri: Uri, maxDimension: Int = 2048): Bitmap? {
         val resolver = context.contentResolver
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-        resolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, bounds) } ?: return null
+        // Bounds pass: decodeStream returns null BY DESIGN here — only use its
+        // side effect (outWidth/outHeight). Do NOT elvis on the decode result.
+        val boundsStream = resolver.openInputStream(uri) ?: return null
+        boundsStream.use { BitmapFactory.decodeStream(it, null, bounds) }
+        if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
         var sample = 1
         var dim = max(bounds.outWidth, bounds.outHeight)
         while (dim / 2 >= maxDimension) { sample *= 2; dim /= 2 }
         val opts = BitmapFactory.Options().apply { inSampleSize = sample }
-        return resolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, opts) }
+        val stream = resolver.openInputStream(uri) ?: return null
+        val decoded = stream.use { BitmapFactory.decodeStream(it, null, opts) } ?: return null
+        return applyExifRotation(context, uri, decoded)
+    }
+
+    /** Camera photos carry EXIF rotation that BitmapFactory ignores — apply it. */
+    private fun applyExifRotation(context: android.content.Context, uri: Uri, bitmap: Bitmap): Bitmap {
+        val degrees = runCatching {
+            val exifStream = context.contentResolver.openInputStream(uri) ?: return bitmap
+            val exif = android.media.ExifInterface(exifStream)
+            exifStream.close()
+            when (exif.getAttributeInt(
+                android.media.ExifInterface.TAG_ORIENTATION,
+                android.media.ExifInterface.ORIENTATION_NORMAL
+            )) {
+                android.media.ExifInterface.ORIENTATION_ROTATE_90 -> 90f
+                android.media.ExifInterface.ORIENTATION_ROTATE_180 -> 180f
+                android.media.ExifInterface.ORIENTATION_ROTATE_270 -> 270f
+                else -> 0f
+            }
+        }.getOrDefault(0f)
+        return if (degrees != 0f) rotate(bitmap, degrees) else bitmap
     }
 
     fun apply(src: Bitmap, o: Options): Bitmap {

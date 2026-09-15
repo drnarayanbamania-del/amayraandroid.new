@@ -19,9 +19,12 @@ import kotlinx.coroutines.withContext
  */
 class VoiceGuardian private constructor(
     private val context: Context,
-    val embedder: SpeakerEmbedder?,
     val vad: SpeechGate?
 ) {
+    // ECAPA (42 MB RAM) is only needed for enroll/verify — load on first use,
+    // not at app start, so regular chat turns never pay for it.
+    private val embedderLoader = lazy { SpeakerEmbedder.load(context) }
+    val embedder: SpeakerEmbedder? get() = embedderLoader.value
     val store = VoicePrintStore(context)
     val normalizer: ScoreNormalizer =
         ScoreNormalizer.load(readAsset("guardian/cohort.bin"), SpeakerEmbedder.EMBED_DIM)
@@ -151,11 +154,10 @@ class VoiceGuardian private constructor(
             instance?.let { return it }
             synchronized(this) {
                 instance?.let { return it }
-                val emb = SpeakerEmbedder.load(context)
                 val vad = SpeechGate.load(context)
-                val g = VoiceGuardian(context.applicationContext, emb, vad)
+                val g = VoiceGuardian(context.applicationContext, vad)
                 instance = g
-                MayaLog.i("GUARDIAN", "VoiceGuardian ready (model=${emb != null}, vad=${vad != null}, cohort=${g.normalizer.cohortSize})")
+                MayaLog.i("GUARDIAN", "VoiceGuardian ready (embedder=lazy, vad=${vad != null}, cohort=${g.normalizer.cohortSize})")
                 return g
             }
         }

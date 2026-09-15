@@ -25,6 +25,10 @@ android {
         versionCode = 1
         versionName = "1.0"
 
+        // Real phones only: drops x86/x86_64/armeabi copies of onnxruntime,
+        // sherpa and barhopper (~110 MB of APK fat).
+        ndk { abiFilters += listOf("arm64-v8a") }
+
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 

@@ -101,7 +101,9 @@ class WakeWordService : Service() {
         }
         record.startRecording()
         val chunk = ShortArray(wwe.chunkSamples)
-        val guardBuf = if (guardian != null && guardian.isUsable) VoiceGuardian.VoicedBuffer() else null
+        // Collect voiced audio regardless of embedder state: touching isUsable
+        // would force the 42 MB ECAPA lazy-load at wake-service startup.
+        val guardBuf = if (guardian != null) VoiceGuardian.VoicedBuffer() else null
         MayaLog.i("WAKE", "Wake-word loop started (${wwe.chunkSamples}-sample chunks)")
         var lastTriggerAt = 0L
         try {

@@ -10,6 +10,7 @@ import com.amayra.scanner.data.ScannerPrefs
 import com.amayra.scanner.data.ScannerStore
 import com.amayra.scanner.data.SettingsStore
 import com.amayra.scanner.ocr.ImageEnhancer
+import com.amayra.scanner.ocr.ImageQuality
 import com.amayra.scanner.ocr.OcrEngine
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -76,15 +77,21 @@ class ScannerViewModel(app: Application) : AndroidViewModel(app) {
             val prefsNow = prefs.value
             val pages = mutableListOf<PageResult>()
             var anyText = false
+            var lastQuality: ImageQuality.Report? = null
             try {
                 uris.forEachIndexed { index, uri ->
                     val bitmap = withContext(Dispatchers.IO) {
                         ImageEnhancer.loadScaled(context, uri)
                     } ?: throw IllegalStateException("Could not read image ${index + 1}")
+                    lastQuality = ImageQuality.analyze(bitmap)
 
+                    // Pass 1: enhanced image. Pass 2 fallback: the raw photo —
+                    // aggressive enhancement can hurt low-light / colorful pages.
                     val working = ImageEnhancer.apply(bitmap, options)
-
-                    val result = ocr.recognize(working, prefsNow.ocrScript)
+                    var result = ocr.recognize(working, prefsNow.ocrScript)
+                    if (result.wordCount == 0) {
+                        result = ocr.recognize(bitmap, prefsNow.ocrScript)
+                    }
                     if (result.wordCount > 0) anyText = true
 
                     val thumb = saveThumb(bitmap, "page_${System.currentTimeMillis()}_$index")
@@ -100,7 +107,7 @@ class ScannerViewModel(app: Application) : AndroidViewModel(app) {
                 }
                 _job.value =
                     if (anyText) ScanJob.Done(pages)
-                    else ScanJob.Error("Unable to recognize text. Try a clearer image.")
+                    else ScanJob.Error(ImageQuality.failureReason(lastQuality))
             } catch (e: Exception) {
                 _job.value = ScanJob.Error(friendlyMessage(e))
             }
@@ -128,13 +135,18 @@ class ScannerViewModel(app: Application) : AndroidViewModel(app) {
         val prefsNow = prefs.value
         val out = mutableListOf<PageResult>()
         var anyText = false
+        var lastQuality: ImageQuality.Report? = null
         try {
             pages.forEachIndexed { index, bmp ->
+                lastQuality = ImageQuality.analyze(bmp)
                 val enhanced = ImageEnhancer.apply(
                     bmp,
                     ImageEnhancer.Options(grayscale = true, contrast = 1.35f, sharpen = true)
                 )
-                val result = ocr.recognize(enhanced, prefsNow.ocrScript)
+                var result = ocr.recognize(enhanced, prefsNow.ocrScript)
+                if (result.wordCount == 0) {
+                    result = ocr.recognize(bmp, prefsNow.ocrScript)
+                }
                 if (result.wordCount > 0) anyText = true
                 out.add(
                     PageResult(
@@ -148,7 +160,11 @@ class ScannerViewModel(app: Application) : AndroidViewModel(app) {
             }
             _job.value =
                 if (anyText) ScanJob.Done(out)
-                else ScanJob.Error("Unable to recognize text in this PDF. If it's a scan, try importing screenshots instead.")
+                else ScanJob.Error(ImageQuality.failureReason(lastQuality).let { reason ->
+                    if (reason == ImageQuality.failureReason(null))
+                        "Unable to recognize text in this PDF. If it's a scan, try importing screenshots instead."
+                    else reason
+                })
         } catch (e: Exception) {
             _job.value = ScanJob.Error(friendlyMessage(e))
         }
