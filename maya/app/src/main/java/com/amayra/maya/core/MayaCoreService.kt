@@ -29,7 +29,28 @@ class MayaCoreService : Service() {
         super.onCreate()
         createChannel()
         acquireWakelock()
+        ensureWakeWord()
         MayaLog.i("CORE", "MayaCoreService created")
+    }
+
+    /**
+     * The wake-word service only starts from the Activity. After a sticky
+     * restart (process killed while screen-off) the Activity may never open,
+     * so 'Hey Maya' would stay dead until the user taps the app. Ensure it
+     * here, guarded by the same pref + mic-permission checks as the Activity.
+     */
+    private fun ensureWakeWord() {
+        val on = MayaApplication.get(this).settings.prefsCache?.wakeWordEnabled ?: false
+        if (!on) return
+        if (com.amayra.maya.voice.wakeword.WakeWordService.serviceRunning) return
+        val mic = checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) ==
+            android.content.pm.PackageManager.PERMISSION_GRANTED
+        if (!mic) {
+            MayaLog.w("CORE", "Wake pref on but mic permission missing — skip until app opens")
+            return
+        }
+        MayaLog.i("CORE", "Service restart: ensuring wake-word service")
+        com.amayra.maya.voice.wakeword.WakeWordService.start(this)
     }
 
     private fun acquireWakelock() {
